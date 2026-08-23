@@ -1,4 +1,5 @@
 import Image from "next/image";
+import {Button} from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -11,6 +12,9 @@ export default function Home() {
         <p className="mt-4 text-lg text-center text-zinc-600 dark:text-zinc-400">
           A Pomodoro timer that learns why your day never goes to plan.
         </p>
+        <a href="https://github.com/shanyueel/vartick" className="href">
+          <Button className="mt-6">Github</Button>
+        </a>
       </main>
     </div>
   );
