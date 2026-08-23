@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VarTick
 
-## Getting Started
+A local-first productivity companion that starts as a Pomodoro timer and grows into a schedule assistant.
 
-First, run the development server:
+**Thesis:** most productivity apps track what you planned. VarTick tracks the *variance* — the gap between what you planned and what actually happened, and why.
+
+> 🚧 Work in progress. See [`docs/`](./docs/README.md) for the full product spec, architecture, and roadmap.
+
+---
+
+## Getting started
+
+Requires Node 22+ (see `.nvmrc`).
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Documentation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Full docs live in [`docs/`](./docs/README.md):
 
-## Learn More
+- [product.md](./docs/product.md) — what's in scope, what isn't
+- [roadmap.md](./docs/roadmap.md) — phases, milestones, cut lines
+- [architecture.md](./docs/architecture.md) — data model and ADRs
+- [testing.md](./docs/testing.md) — testing strategy
+- [design.md](./docs/design.md) — visual design
+- [workflow.md](./docs/workflow.md) — branch naming and commit message conventions
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js (App Router) · TypeScript · Tailwind · shadcn/ui · Dexie (IndexedDB) · Vitest · Playwright · Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+TBD
