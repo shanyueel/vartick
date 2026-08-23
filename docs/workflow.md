@@ -20,17 +20,18 @@ Format: `<type>/<short-description>`
 - Keep it short — a few words, not a sentence
 - No ticket system yet, so no ticket number prefix is required (add one later if we adopt one)
 
-| Type | Use for |
-|---|---|
-| `feat/` | New functionality |
-| `fix/` | Bug fix |
-| `hotfix/` | Urgent fix, typically against a deployed/production issue |
-| `refactor/` | Restructuring code with no behavior change |
-| `chore/` | Tooling, config, dependencies, CI — no app code behavior change |
-| `docs/` | Documentation only |
-| `test/` | Test-only changes |
+| Type        | Use for                                                         |
+| ----------- | --------------------------------------------------------------- |
+| `feat/`     | New functionality                                               |
+| `fix/`      | Bug fix                                                         |
+| `hotfix/`   | Urgent fix, typically against a deployed/production issue       |
+| `refactor/` | Restructuring code with no behavior change                      |
+| `chore/`    | Tooling, config, dependencies, CI — no app code behavior change |
+| `docs/`     | Documentation only                                              |
+| `test/`     | Test-only changes                                               |
 
 **Examples**
+
 ```
 feat/timer-state-machine
 fix/session-abandon-not-persisted
@@ -49,19 +50,20 @@ Format: `<type>: <short summary>`
 - Type is lowercase, followed by a colon and a space
 - Summary is imperative mood ("add", not "added" or "adds"), no trailing period
 - Keep the summary line under ~72 characters
-- Add a body (blank line, then free text) when the *why* isn't obvious from the summary — see [CLAUDE.md](../CLAUDE.md) root guidance on comments/PRs: the reasoning belongs in the commit, not as a code comment
+- Add a body (blank line, then free text) when the _why_ isn't obvious from the summary — see [CLAUDE.md](../CLAUDE.md) root guidance on comments/PRs: the reasoning belongs in the commit, not as a code comment
 
-| Type | Use for |
-|---|---|
-| `feat:` | New functionality |
-| `fix:` | Bug fix |
-| `hotfix:` | Urgent production fix |
+| Type        | Use for                               |
+| ----------- | ------------------------------------- |
+| `feat:`     | New functionality                     |
+| `fix:`      | Bug fix                               |
+| `hotfix:`   | Urgent production fix                 |
 | `refactor:` | Restructuring with no behavior change |
-| `chore:` | Tooling, deps, config, CI |
-| `docs:` | Documentation only |
-| `test:` | Test-only changes |
+| `chore:`    | Tooling, deps, config, CI             |
+| `docs:`     | Documentation only                    |
+| `test:`     | Test-only changes                     |
 
 **Examples**
+
 ```
 feat: add timer state machine with idle/running/paused states
 fix: persist session on tab close, not just on completion

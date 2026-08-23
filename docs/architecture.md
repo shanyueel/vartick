@@ -14,93 +14,94 @@ IndexedDB via Dexie. Schema is versioned from v1 — every phase that changes th
 ```ts
 // db.ts
 export interface Session {
-  id: string;
-  type: 'focus' | 'shortBreak' | 'longBreak';
-  startedAt: number;              // epoch ms
-  endedAt: number;
-  plannedDurationSec: number;
-  actualDurationSec: number;
-  status: 'completed' | 'abandoned';
-  taskId?: string;
-  blockId?: string;               // Phase 3
-  energy?: 1 | 2 | 3;             // captured in v1, surfaced post-v1
+  id: string
+  type: "focus" | "shortBreak" | "longBreak"
+  startedAt: number // epoch ms
+  endedAt: number
+  plannedDurationSec: number
+  actualDurationSec: number
+  status: "completed" | "abandoned"
+  taskId?: string
+  blockId?: string // Phase 3
+  energy?: 1 | 2 | 3 // captured in v1, surfaced post-v1
 }
 
 export interface Task {
-  id: string;
-  title: string;
-  categoryId: string;
-  urgent: boolean;                // Eisenhower axis 1
-  important: boolean;             // Eisenhower axis 2
-  difficulty: 1 | 2 | 3;
-  estimatedPomodoros?: number;    // sizes Phase 3 blocks; not reported on in v1
-  completedAt?: number;
-  createdAt: number;
-  archivedAt?: number;            // soft delete — preserves report history
+  id: string
+  title: string
+  categoryId: string
+  urgent: boolean // Eisenhower axis 1
+  important: boolean // Eisenhower axis 2
+  difficulty: 1 | 2 | 3
+  estimatedPomodoros?: number // sizes Phase 3 blocks; not reported on in v1
+  completedAt?: number
+  createdAt: number
+  archivedAt?: number // soft delete — preserves report history
 }
 
 export interface Category {
-  id: string;
-  name: string;                   // preset-seeded on first run
-  color: string;
-  isPreset: boolean;
+  id: string
+  name: string // preset-seeded on first run
+  color: string
+  isPreset: boolean
 }
 
 export interface DayPlan {
-  id: string;
-  date: string;                   // 'YYYY-MM-DD', local timezone
-  createdAt: number;
+  id: string
+  date: string // 'YYYY-MM-DD', local timezone
+  createdAt: number
 }
 
 export interface Block {
-  id: string;
-  dayPlanId: string;
-  title: string;
-  taskId?: string;
-  plannedStart: number;
-  plannedEnd: number;
-  actualStart?: number;
-  actualEnd?: number;
-  status: 'pending' | 'active' | 'done' | 'skipped';
-  order: number;
+  id: string
+  dayPlanId: string
+  title: string
+  taskId?: string
+  plannedStart: number
+  plannedEnd: number
+  actualStart?: number
+  actualEnd?: number
+  status: "pending" | "active" | "done" | "skipped"
+  order: number
 }
 
 export interface Adjustment {
-  id: string;
-  dayPlanId: string;
-  blockId?: string;
-  type: 'shift' | 'reschedule' | 'drop';
-  deltaMinutes: number;
-  reason?: string;
-  createdAt: number;
+  id: string
+  dayPlanId: string
+  blockId?: string
+  type: "shift" | "reschedule" | "drop"
+  deltaMinutes: number
+  reason?: string
+  createdAt: number
 }
 
 export interface Insight {
-  id: string;
-  weekOf: string;                 // 'YYYY-MM-DD' of Monday
-  generatedAt: number;
-  model: string;
-  promptSnapshot: string;         // for debugging and transparency
-  contentMarkdown: string;
+  id: string
+  weekOf: string // 'YYYY-MM-DD' of Monday
+  generatedAt: number
+  model: string
+  promptSnapshot: string // for debugging and transparency
+  contentMarkdown: string
 }
 
 export interface Settings {
-  id: 'singleton';
-  focusMin: number;
-  shortBreakMin: number;
-  longBreakMin: number;
-  cyclesBeforeLongBreak: number;
-  soundEnabled: boolean;
-  notificationsEnabled: boolean;
-  llmProvider?: 'openai' | 'anthropic' | 'google' | 'xai';
-  llmApiKey?: string;
-  shareTaskTitlesWithLLM: boolean;   // default false
+  id: "singleton"
+  focusMin: number
+  shortBreakMin: number
+  longBreakMin: number
+  cyclesBeforeLongBreak: number
+  soundEnabled: boolean
+  notificationsEnabled: boolean
+  llmProvider?: "openai" | "anthropic" | "google" | "xai"
+  llmApiKey?: string
+  shareTaskTitlesWithLLM: boolean // default false
 }
 ```
 
 **Preset categories (seeded on first run):** Deep Work, Learning, Admin, Communication, Creative, Personal.
 
 **Design notes**
+
 - `Task.archivedAt` instead of hard delete — deleting a task must never corrupt historical reports.
 - `Session.energy` is write-only in v1 — stored, never read. It is optional, so any future aggregation must handle `undefined` across the whole history.
 - All dates for grouping use `YYYY-MM-DD` in **local** time. Store instants as epoch ms; convert at the boundary. This is the single most common source of bugs in this kind of app — write the date-key helper first and test it.
@@ -124,11 +125,10 @@ The key is stored client-side in IndexedDB and sent in the request body to `app/
 **ADR-5 — One theme, executed well**
 iOS-inspired glass/translucency, dark base. No light/dark toggle in v1. Rationale: a single, confidently-executed aesthetic reads as intentional design; a half-tuned toggle reads as an unfinished setting.
 
-
 **ADR-6 — Provider adapter interface, three shapes for four providers**
 BYOK supports OpenAI (GPT), Anthropic (Claude), Google (Gemini), and xAI (Grok) behind a single `InsightProvider` interface: `buildRequest(aggregates, key)` → `parseResponse(raw)` → normalized `Insight`. The proxy route (ADR-4) selects an adapter by `Settings.llmProvider` and knows nothing about provider specifics.
 
-**Four providers cost three adapters, not four.** xAI's API is OpenAI-compatible, so one OpenAI-shaped adapter covers both GPT and Grok with only a base-URL swap. Anthropic and Google each need their own request/response shape. *(Verify xAI compatibility at build time — this is current as of writing but is the kind of thing that changes.)*
+**Four providers cost three adapters, not four.** xAI's API is OpenAI-compatible, so one OpenAI-shaped adapter covers both GPT and Grok with only a base-URL swap. Anthropic and Google each need their own request/response shape. _(Verify xAI compatibility at build time — this is current as of writing but is the kind of thing that changes.)_
 
 Build order is by value-per-hour: **OpenAI-compatible first** (two providers for one adapter), then Anthropic, then Google. Each adapter is a pure function pair and is unit-tested against recorded fixture responses — no live API calls in the test suite.
 
@@ -137,18 +137,18 @@ Rationale: the adapter boundary is the architecturally interesting part and the 
 
 ## Recommended Stack
 
-| Concern | Choice | Note |
-|---|---|---|
-| Framework | Next.js 15, App Router | ADR-1 |
-| Language | TypeScript, `strict: true` | |
-| Styling | Tailwind CSS v4 | |
-| Components | shadcn/ui | Behavior and a11y only; restyle surfaces |
-| Persistence | Dexie + `dexie-react-hooks` | ADR-2 |
-| Charts | Recharts | Lightweight; sufficient for report views |
-| Unit / integration | Vitest + React Testing Library | |
-| IndexedDB in tests | `fake-indexeddb` | |
-| E2E | Playwright | Use the clock API for time control |
-| PWA | `@serwist/next` | Better maintained than `next-pwa` |
-| Dates | `date-fns` | Avoid Moment; consider Temporal only when stable |
-| Hosting | Vercel | |
-| CI | GitHub Actions | |
+| Concern            | Choice                         | Note                                             |
+| ------------------ | ------------------------------ | ------------------------------------------------ |
+| Framework          | Next.js 15, App Router         | ADR-1                                            |
+| Language           | TypeScript, `strict: true`     |                                                  |
+| Styling            | Tailwind CSS v4                |                                                  |
+| Components         | shadcn/ui                      | Behavior and a11y only; restyle surfaces         |
+| Persistence        | Dexie + `dexie-react-hooks`    | ADR-2                                            |
+| Charts             | Recharts                       | Lightweight; sufficient for report views         |
+| Unit / integration | Vitest + React Testing Library |                                                  |
+| IndexedDB in tests | `fake-indexeddb`               |                                                  |
+| E2E                | Playwright                     | Use the clock API for time control               |
+| PWA                | `@serwist/next`                | Better maintained than `next-pwa`                |
+| Dates              | `date-fns`                     | Avoid Moment; consider Temporal only when stable |
+| Hosting            | Vercel                         |                                                  |
+| CI                 | GitHub Actions                 |                                                  |

@@ -2,7 +2,7 @@
 
 A local-first productivity companion that starts as a Pomodoro timer and grows into a schedule assistant.
 
-**Thesis:** most productivity apps track what you planned. VarTick tracks the *variance* — the gap between what you planned and what actually happened, and why.
+**Thesis:** most productivity apps track what you planned. VarTick tracks the _variance_ — the gap between what you planned and what actually happened, and why.
 
 > 🚧 Work in progress. See [`docs/`](./docs/README.md) for the full product spec, architecture, and roadmap.
 
