@@ -13,6 +13,20 @@ IndexedDB via Dexie. Schema is versioned from v1 — every phase that changes th
 
 ```ts
 // db.ts
+// The one currently-running timer, if any. Singleton row, deleted once the
+// timer concludes and its result is written to `sessions`. Lives in
+// IndexedDB rather than localStorage so it survives refresh/backgrounding
+// (ADR-3) and stays in sync across tabs for free via useLiveQuery — two
+// tabs open on the same running timer both read the same `endsAt` and
+// render the same countdown with no extra coordination.
+export interface ActiveTimer {
+  id: "singleton"
+  type: "focus" | "shortBreak" | "longBreak"
+  startedAt: number // epoch ms
+  endsAt: number // epoch ms — absolute target, never a countdown counter
+  plannedDurationSec: number
+}
+
 export interface Session {
   id: string
   type: "focus" | "shortBreak" | "longBreak"
@@ -118,6 +132,8 @@ No Redux/Zustand for persisted domain data. IndexedDB is the single source of tr
 
 **ADR-3 — Timestamp-based timer, not interval-counting**
 Persist `endsAt` as an absolute epoch timestamp. `setInterval` only drives the visual countdown; it is never the source of truth. On tab focus, visibility change, or mount, recompute from `Date.now()`. Browsers throttle background timers aggressively — an interval-counting timer will silently drift or freeze. This is non-negotiable and is the subject of a required test.
+
+`endsAt` lives on the `ActiveTimer` singleton row, not on `Session`. `Session` rows are only ever written once, at completion or abandonment — keeping them append-only avoids nullable/in-progress fields on what is otherwise a historical log.
 
 **ADR-4 — BYOK via a Next.js Route Handler proxy**
 The key is stored client-side in IndexedDB and sent in the request body to `app/api/insight/route.ts`, which forwards it to the provider and returns the response. The key is never persisted, logged, or cached server-side. Rationale: avoids browser CORS restrictions, keeps the key out of client-side network logs on third-party domains, and allows provider-swapping behind one interface. Document this clearly in the UI and the README — the transparency is part of the portfolio value.
