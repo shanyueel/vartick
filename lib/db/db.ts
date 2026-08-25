@@ -1,14 +1,26 @@
-import Dexie, { type EntityTable } from "dexie"
+import Dexie, { type EntityTable, type Table } from "dexie"
 
 // The one currently-running timer, if any. Singleton row, deleted once the
 // timer concludes and its result is written to `sessions`.
-export interface ActiveTimer {
+export interface RunningActiveTimer {
   id: "singleton"
   type: "focus" | "shortBreak" | "longBreak"
+  status: "running"
   startedAt: number // epoch ms
   endsAt: number // epoch ms — absolute target, never a countdown counter
   plannedDurationSec: number
 }
+
+export interface PausedActiveTimer {
+  id: "singleton"
+  type: "focus" | "shortBreak" | "longBreak"
+  status: "paused"
+  startedAt: number // epoch ms
+  remainingSec: number // written when paused; used to recomputing endsAt when resumed
+  plannedDurationSec: number
+}
+
+export type ActiveTimer = RunningActiveTimer | PausedActiveTimer
 
 export interface Session {
   id: string
@@ -32,7 +44,7 @@ export interface Settings {
 
 const db = new Dexie("vartick") as Dexie & {
   sessions: EntityTable<Session, "id">
-  activeTimer: EntityTable<ActiveTimer, "id">
+  activeTimer: Table<ActiveTimer, "singleton">
   settings: EntityTable<Settings, "id">
 }
 
