@@ -35,7 +35,7 @@ Each phase is a **gate**. Do not begin the next phase until the current phase's 
 - [ ] Refreshing mid-session restores the correct remaining time
 - [ ] Abandoning a session writes a row with `status: 'abandoned'` and the actual elapsed duration
 - [ ] Lighthouse PWA audit passes; app installs to home screen on both desktop and Android
-- [ ] Timer state machine has 100% branch coverage in Vitest, written test-first
+- [x] Timer state machine has 100% branch coverage in Vitest, written test-first
 - [ ] Deployed and reachable at a public URL
 
 ---

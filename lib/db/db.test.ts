@@ -17,51 +17,6 @@ describe("IndexedDB Tests", () => {
     expect(tables).toEqual(["activeTimer", "sessions", "settings"])
   })
 
-  /* activeTimer Table */
-  test("update the singleton active timer", async () => {
-    const oldStartTime = new Date("2026-01-01T12:00:00Z").getTime()
-    const startTime = Date.now()
-    const oldDurationSec = 15 * 60
-    const durationSec = 25 * 60
-
-    // original active timer
-    await db.activeTimer.put({
-      id: "singleton",
-      type: "shortBreak",
-      startedAt: oldStartTime,
-      endsAt: oldStartTime + oldDurationSec * 1000,
-      plannedDurationSec: oldDurationSec
-    })
-
-    const oldTimer = await db.activeTimer.get("singleton")
-
-    expect(oldTimer).toBeDefined()
-    expect(oldTimer?.type).toBe("shortBreak")
-    expect(oldTimer?.startedAt).toBe(oldStartTime)
-    expect(oldTimer?.endsAt).toBe(oldStartTime + oldDurationSec * 1000)
-    expect(oldTimer?.plannedDurationSec).toBe(15 * 60)
-
-    await db.activeTimer.put({
-      id: "singleton",
-      type: "focus",
-      startedAt: startTime,
-      endsAt: startTime + durationSec * 1000,
-      plannedDurationSec: durationSec
-    })
-
-    const timer = await db.activeTimer.get("singleton")
-
-    expect(timer).toBeDefined()
-    expect(timer?.type).toBe("focus")
-    expect(timer?.startedAt).toBe(startTime)
-    expect(timer?.endsAt).toBe(startTime + durationSec * 1000)
-    expect(timer?.plannedDurationSec).toBe(25 * 60)
-
-    // checking the singleton nature
-    const allTimers = await db.activeTimer.count()
-    expect(allTimers).toBe(1)
-  })
-
   /* settings Table */
   test("update the singleton settings", async () => {
     await db.settings.put({
@@ -107,6 +62,139 @@ describe("IndexedDB Tests", () => {
     // checking the singleton nature
     const allSettings = await db.settings.count()
     expect(allSettings).toBe(1)
+  })
+
+  /* activeTimer Table */
+  describe("activeTimer table", () => {
+    const startTime = new Date("2026-01-01T12:00:00Z").getTime()
+    const durationSec = 25 * 60
+
+    test("stores a running timer", async () => {
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "shortBreak",
+        status: "running",
+        startedAt: startTime,
+        endsAt: startTime + durationSec * 1000,
+        plannedDurationSec: durationSec
+      })
+
+      const timer = await db.activeTimer.get("singleton")
+
+      if (timer?.status !== "running") throw new Error("expected running timer")
+
+      expect(timer.type).toBe("shortBreak")
+      expect(timer.startedAt).toBe(startTime)
+      expect(timer.endsAt).toBe(startTime + durationSec * 1000)
+      expect(timer.plannedDurationSec).toBe(durationSec)
+    })
+
+    test("stores a paused timer", async () => {
+      const remainingSec = durationSec - 5 * 60
+
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "shortBreak",
+        status: "paused",
+        startedAt: startTime,
+        remainingSec,
+        plannedDurationSec: durationSec
+      })
+
+      const timer = await db.activeTimer.get("singleton")
+
+      if (timer?.status !== "paused") throw new Error("expected paused timer")
+
+      expect(timer.type).toBe("shortBreak")
+      expect(timer.startedAt).toBe(startTime)
+      expect(timer.remainingSec).toBe(remainingSec)
+      expect(timer.plannedDurationSec).toBe(durationSec)
+    })
+
+    test("put() fully overwrites and no stale fields survive a status change", async () => {
+      // start running
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "shortBreak",
+        status: "running",
+        startedAt: startTime,
+        endsAt: startTime + durationSec * 1000,
+        plannedDurationSec: durationSec
+      })
+
+      // pause after 5 minutes
+      const remainingSec = durationSec - 5 * 60
+
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "shortBreak",
+        status: "paused",
+        startedAt: startTime,
+        remainingSec,
+        plannedDurationSec: durationSec
+      })
+
+      const pausedTimer = await db.activeTimer.get("singleton")
+      if (pausedTimer?.status !== "paused") throw new Error("expected paused timer")
+      expect("endsAt" in pausedTimer).toBe(false)
+
+      // resume
+      const resumedStartTime = new Date("2026-01-01T12:30:00Z").getTime()
+      const newEndsAt = resumedStartTime + remainingSec * 1000
+
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "shortBreak",
+        status: "running",
+        startedAt: startTime,
+        endsAt: newEndsAt,
+        plannedDurationSec: durationSec
+      })
+
+      const resumedTimer = await db.activeTimer.get("singleton")
+      if (resumedTimer?.status !== "running") throw new Error("expected running timer")
+      expect("remainingSec" in resumedTimer).toBe(false)
+      expect(resumedTimer.endsAt).toBe(newEndsAt)
+    })
+
+    test("singleton stays singleton across multiple writes", async () => {
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "focus",
+        status: "running",
+        startedAt: startTime,
+        endsAt: startTime + durationSec * 1000,
+        plannedDurationSec: durationSec
+      })
+
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "longBreak",
+        status: "paused",
+        startedAt: startTime,
+        remainingSec: durationSec - 60,
+        plannedDurationSec: durationSec
+      })
+
+      const allTimers = await db.activeTimer.count()
+      expect(allTimers).toBe(1)
+    })
+
+    test("delete removes the active timer", async () => {
+      await db.activeTimer.put({
+        id: "singleton",
+        type: "focus",
+        status: "running",
+        startedAt: startTime,
+        endsAt: startTime + durationSec * 1000,
+        plannedDurationSec: durationSec
+      })
+
+      await db.activeTimer.delete("singleton")
+
+      const noTimer = await db.activeTimer.get("singleton")
+      expect(noTimer).toBeUndefined()
+    })
   })
 
   /* sessions Table */
