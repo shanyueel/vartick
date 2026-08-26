@@ -99,6 +99,14 @@ describe("Timer Tests", () => {
   })
 
   describe("start()", () => {
+    test("throws error if the timer has been stopped", () => {
+      const timer = new Timer(10)
+
+      timer.stop()
+
+      expect(() => timer.start()).toThrow("Timer can't be started since it has been stopped")
+    })
+
     test("throws error if the timer is already started (running / paused / expired)", () => {
       const timer = new Timer(10)
 
@@ -118,6 +126,14 @@ describe("Timer Tests", () => {
   })
 
   describe("pause()", () => {
+    test("throws error if the timer has been stopped", () => {
+      const timer = new Timer(10)
+
+      timer.stop()
+
+      expect(() => timer.pause()).toThrow("Timer can't be paused since it has been stopped")
+    })
+
     test("throws error if the timer is not started or has expired", () => {
       const timer = new Timer(10)
 
@@ -145,6 +161,14 @@ describe("Timer Tests", () => {
   })
 
   describe("resume()", () => {
+    test("throws error if the timer has been stopped", () => {
+      const timer = new Timer(10)
+
+      timer.stop()
+
+      expect(() => timer.resume()).toThrow("Timer can't be resumed since it has been stopped")
+    })
+
     test("throws error if the timer is not started or expired", () => {
       const timer = new Timer(10)
 
