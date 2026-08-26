@@ -16,7 +16,7 @@ export interface PausedActiveTimer {
   type: "focus" | "shortBreak" | "longBreak"
   status: "paused"
   startedAt: number // epoch ms
-  remainingSec: number // written when paused; used to recomputing endsAt when resumed
+  remainingSec: number // written when paused; used to recompute endsAt when resumed
   plannedDurationSec: number
 }
 
