@@ -200,6 +200,9 @@ describe("Timer Tests", () => {
       vi.advanceTimersByTime(3000)
 
       const { startedAt, endedAt, remainingSec, durationSec } = timer.stop()
+      if (startedAt === undefined || endedAt === undefined) {
+        throw new Error("expected a started timer")
+      }
 
       expect(endedAt - startedAt).toBe(3000)
       expect(remainingSec).toBe(7)
@@ -216,6 +219,10 @@ describe("Timer Tests", () => {
 
       const { startedAt, endedAt, remainingSec, durationSec } = timer.stop()
 
+      if (startedAt === undefined || endedAt === undefined) {
+        throw new Error("expected a started timer")
+      }
+
       expect(endedAt - startedAt).toBe(5000)
       expect(remainingSec).toBe(7)
       expect(durationSec).toBe(10)
@@ -228,6 +235,10 @@ describe("Timer Tests", () => {
       vi.advanceTimersByTime(10000)
 
       const { startedAt, endedAt, remainingSec, durationSec } = timer.stop()
+
+      if (startedAt === undefined || endedAt === undefined) {
+        throw new Error("expected a started timer")
+      }
 
       expect(endedAt - startedAt).toBe(10000)
       expect(remainingSec).toBe(0)
