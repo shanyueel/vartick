@@ -48,6 +48,10 @@ export class Timer {
   }
 
   start() {
+    if (this.isStopped) {
+      throw new Error("Timer can't be started since it has been stopped")
+    }
+
     if (this.state.status !== "pending") {
       throw new Error("Timer can't be started since it has already started")
     }
@@ -57,6 +61,10 @@ export class Timer {
   }
 
   pause() {
+    if (this.isStopped) {
+      throw new Error("Timer can't be paused since it has been stopped")
+    }
+
     if (this.state.status === "pending") {
       throw new Error("Timer can't be paused if it is not started")
     }
@@ -76,6 +84,10 @@ export class Timer {
   }
 
   resume() {
+    if (this.isStopped) {
+      throw new Error("Timer can't be resumed since it has been stopped")
+    }
+
     if (this.state.status === "pending") {
       throw new Error("Timer can't be resumed before the timer has started")
     }
