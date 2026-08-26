@@ -32,10 +32,11 @@ export class Timer {
     }
 
     // status: "running"
-    if (this.state.endsAt > Date.now()) {
+    const now = Date.now()
+    if (this.state.endsAt > now) {
       return {
         status: "running",
-        remainingSec: Math.ceil((this.state.endsAt - Date.now()) / 1000)
+        remainingSec: Math.ceil((this.state.endsAt - now) / 1000)
       }
     }
 
@@ -62,14 +63,15 @@ export class Timer {
 
     if (this.state.status === "paused") return
 
-    if (this.state.endsAt <= Date.now()) {
+    const now = Date.now()
+    if (this.state.endsAt <= now) {
       throw new Error("Timer can't be paused if it has expired")
     }
 
     this.state = {
       status: "paused",
       startedAt: this.state.startedAt,
-      remainingMs: this.state.endsAt - Date.now()
+      remainingMs: this.state.endsAt - now
     }
   }
 
@@ -85,10 +87,11 @@ export class Timer {
       return
     }
 
+    const now = Date.now()
     this.state = {
       status: "running",
       startedAt: this.state.startedAt,
-      endsAt: Date.now() + this.state.remainingMs
+      endsAt: now + this.state.remainingMs
     }
   }
 
@@ -108,14 +111,15 @@ export class Timer {
       }
     }
 
+    const now = Date.now()
     const remainingSec =
       this.state.status === "paused"
         ? Math.ceil(this.state.remainingMs / 1000)
-        : Math.max(0, Math.ceil((this.state.endsAt - Date.now()) / 1000))
+        : Math.max(0, Math.ceil((this.state.endsAt - now) / 1000))
 
     return {
       startedAt: this.state.startedAt,
-      endedAt: Date.now(),
+      endedAt: now,
       remainingSec,
       durationSec: this.durationSec
     }
