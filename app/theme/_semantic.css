@@ -1,0 +1,57 @@
+/* Semantic layer: role tokens for everyday className use
+   (bg-primary, text-muted-foreground). Point at _base.css
+   scale values, never raw oklch(). Add a role only when used. */
+:root {
+  --color-background: var(--color-white);
+  --color-foreground: var(--color-gray-900);
+
+  --color-primary: var(--color-orange-600);
+  --color-primary-foreground: var(--color-white);
+
+  --color-secondary: var(--color-gray-100);
+  --color-secondary-foreground: var(--color-gray-800);
+
+  --color-muted: var(--color-gray-100);
+  --color-muted-foreground: var(--color-gray-500);
+
+  --color-accent: var(--color-gray-100);
+  --color-accent-foreground: var(--color-gray-900);
+
+  --color-border: var(--color-gray-200);
+  --color-ring: var(--color-gray-300);
+}
+
+.dark {
+  --color-background: var(--color-gray-950);
+  --color-foreground: var(--color-gray-50);
+
+  --color-primary: var(--color-orange-500);
+  --color-primary-foreground: var(--color-orange-50);
+
+  --color-secondary: var(--color-gray-800);
+  --color-secondary-foreground: var(--color-gray-50);
+
+  --color-muted: var(--color-gray-800);
+  --color-muted-foreground: var(--color-gray-400);
+
+  --color-accent: var(--color-gray-800);
+  --color-accent-foreground: var(--color-gray-50);
+
+  --color-border: color-mix(in oklch, var(--color-white) 10%, transparent);
+  --color-ring: var(--color-gray-400);
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-primary: var(--color-primary);
+  --color-primary-foreground: var(--color-primary-foreground);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-foreground: var(--color-secondary-foreground);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-border: var(--color-border);
+  --color-ring: var(--color-ring);
+}
