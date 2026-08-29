@@ -31,6 +31,8 @@
   --color-rose-*: initial;
 
   /* Colors */
+  --color-black: oklch(10.5% 0.005 178.6);
+
   --color-gray-50: oklch(96.8% 0.003 178.6);
   --color-gray-100: oklch(93% 0.004 178.6);
   --color-gray-200: oklch(86% 0.005 178.6);
@@ -150,6 +152,7 @@
   --tracking-tight: -0.01em;
   --tracking-normal: 0;
   --tracking-wide: 0.07em;
+  --tracking-wider: 0.85em;
   --tracking-widest: 0.1em;
 
   /* Radius */

@@ -26,10 +26,10 @@
   --color-foreground: var(--color-gray-50);
 
   --color-primary: var(--color-orange-500);
-  --color-primary-foreground: var(--color-orange-50);
+  --color-primary-foreground: var(--color-black);
 
   --color-secondary: var(--color-gray-800);
-  --color-secondary-foreground: var(--color-gray-50);
+  --color-secondary-foreground: var(--color-gray-100);
 
   --color-muted: var(--color-gray-800);
   --color-muted-foreground: var(--color-gray-400);
