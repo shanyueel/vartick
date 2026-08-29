@@ -21,6 +21,28 @@ describe("Timer Tests", () => {
     )
   })
 
+  describe("getDurationSec()", () => {
+    test("returns the duration in seconds", () => {
+      const timer = new Timer(10)
+
+      expect(timer.getDurationSec()).toBe(10)
+
+      timer.start()
+      vi.advanceTimersByTime(3000)
+
+      expect(timer.getDurationSec()).toBe(10)
+
+      timer.pause()
+
+      expect(timer.getDurationSec()).toBe(10)
+
+      timer.resume()
+      vi.advanceTimersByTime(7000)
+
+      expect(timer.getDurationSec()).toBe(10)
+    })
+  })
+
   describe("getCurrent()", () => {
     test("returns 'pending' status and remaining seconds before timer is started", () => {
       const timer = new Timer(10)

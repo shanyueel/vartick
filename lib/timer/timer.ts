@@ -16,6 +16,10 @@ export class Timer {
     this.durationSec = durationSec
   }
 
+  getDurationSec() {
+    return this.durationSec
+  }
+
   getCurrent() {
     if (this.state.status === "pending") {
       return {
