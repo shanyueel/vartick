@@ -1,17 +1,27 @@
+type TimerStatus = "pending" | "running" | "paused" | "finished" | "ended"
+
 type TimerState =
   | { status: "pending" }
   | { status: "running"; startedAt: number; endsAt: number }
   | { status: "paused"; startedAt: number; remainingMs: number }
+  | { status: "ended"; startedAt?: number; remainingMs: number }
 
 export class Timer {
   private state: TimerState = { status: "pending" }
   private durationSec: number
-  private isStopped: boolean = false
 
-  constructor(durationSec: number) {
+  private static validateDuration(durationSec: number) {
     if (durationSec <= 0 || !Number.isInteger(durationSec)) {
       throw new Error("Invalid timer duration, must be a positive integer")
     }
+  }
+
+  private isFinished() {
+    return this.state.status === "running" && Date.now() >= this.state.endsAt
+  }
+
+  constructor(durationSec: number) {
+    Timer.validateDuration(durationSec)
 
     this.durationSec = durationSec
   }
@@ -20,7 +30,7 @@ export class Timer {
     return this.durationSec
   }
 
-  getCurrent() {
+  getCurrent(): { status: TimerStatus; remainingSec: number } {
     if (this.state.status === "pending") {
       return {
         status: "pending",
@@ -35,28 +45,33 @@ export class Timer {
       }
     }
 
-    // status: "running"
-    const now = Date.now()
-    if (this.state.endsAt > now) {
-      return {
-        status: "running",
-        remainingSec: Math.ceil((this.state.endsAt - now) / 1000)
-      }
+    // status: "running" or "finished"
+    if (this.state.status === "running") {
+      const remainingMs = this.state.endsAt - Date.now()
+
+      return remainingMs <= 0
+        ? { status: "finished", remainingSec: 0 }
+        : { status: "running", remainingSec: Math.ceil(remainingMs / 1000) }
     }
 
-    // status: "expired"
+    // status: "ended"
     return {
-      status: "expired",
-      remainingSec: 0
+      status: "ended",
+      remainingSec: Math.ceil(this.state.remainingMs / 1000)
     }
   }
 
   start() {
-    if (this.isStopped) {
-      throw new Error("Timer can't be started since it has been stopped")
-    }
-
     if (this.state.status !== "pending") {
+      if (this.isFinished()) {
+        throw new Error("Timer can't be started since it is finished")
+      }
+
+      if (this.state.status === "ended") {
+        throw new Error("Timer can't be started since it has ended")
+      }
+
+      // status: "running" or "paused"
       throw new Error("Timer can't be started since it has already started")
     }
 
@@ -65,60 +80,62 @@ export class Timer {
   }
 
   pause() {
-    if (this.isStopped) {
-      throw new Error("Timer can't be paused since it has been stopped")
+    if (this.state.status === "pending") {
+      throw new Error("Timer can't be paused since it is not started")
     }
 
-    if (this.state.status === "pending") {
-      throw new Error("Timer can't be paused if it is not started")
+    if (this.isFinished()) {
+      throw new Error("Timer can't be paused since it is finished")
+    }
+
+    if (this.state.status === "ended") {
+      throw new Error("Timer can't be paused since it has ended")
     }
 
     if (this.state.status === "paused") return
 
-    const now = Date.now()
-    if (this.state.endsAt <= now) {
-      throw new Error("Timer can't be paused if it has expired")
-    }
-
     this.state = {
       status: "paused",
       startedAt: this.state.startedAt,
-      remainingMs: this.state.endsAt - now
+      remainingMs: this.state.endsAt - Date.now()
     }
   }
 
   resume() {
-    if (this.isStopped) {
-      throw new Error("Timer can't be resumed since it has been stopped")
+    if (this.state.status === "pending") {
+      throw new Error("Timer can't be resumed before it has started")
     }
 
-    if (this.state.status === "pending") {
-      throw new Error("Timer can't be resumed before the timer has started")
+    if (this.isFinished()) {
+      throw new Error("Timer can't be resumed since it is finished")
+    }
+
+    if (this.state.status === "ended") {
+      throw new Error("Timer can't be resumed since it has ended")
     }
 
     if (this.state.status === "running") {
-      if (this.state.endsAt <= Date.now()) {
-        throw new Error("Timer can't be resumed if it has expired")
-      }
       return
     }
 
-    const now = Date.now()
     this.state = {
       status: "running",
       startedAt: this.state.startedAt,
-      endsAt: now + this.state.remainingMs
+      endsAt: Date.now() + this.state.remainingMs
     }
   }
 
-  stop() {
-    if (this.isStopped) {
-      throw new Error("Timer has already been stopped")
+  end() {
+    if (this.state.status === "ended") {
+      throw new Error("Timer can't be ended since it has already ended")
     }
 
-    this.isStopped = true
-
     if (this.state.status === "pending") {
+      this.state = {
+        status: "ended",
+        remainingMs: this.durationSec * 1000
+      }
+
       return {
         startedAt: undefined,
         endedAt: undefined,
@@ -127,17 +144,34 @@ export class Timer {
       }
     }
 
+    // status: "running", "finished", or "paused"
     const now = Date.now()
-    const remainingSec =
-      this.state.status === "paused"
-        ? Math.ceil(this.state.remainingMs / 1000)
-        : Math.max(0, Math.ceil((this.state.endsAt - now) / 1000))
+    const remainingMs =
+      this.state.status === "paused" ? this.state.remainingMs : Math.max(0, this.state.endsAt - now)
+    const { startedAt } = this.state
+
+    this.state = {
+      status: "ended",
+      startedAt,
+      remainingMs
+    }
 
     return {
-      startedAt: this.state.startedAt,
+      startedAt,
       endedAt: now,
-      remainingSec,
+      remainingSec: Math.ceil(remainingMs / 1000),
       durationSec: this.durationSec
     }
+  }
+
+  reset(durationSec: number) {
+    Timer.validateDuration(durationSec)
+
+    if (this.state.status !== "ended") {
+      throw new Error("Timer can't be reset since it is not ended")
+    }
+
+    this.durationSec = durationSec
+    this.state = { status: "pending" }
   }
 }
