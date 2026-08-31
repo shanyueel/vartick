@@ -11,6 +11,7 @@ interface CircularProgressProps {
   segments?: number
   segmentGapRatio?: number
   muted?: boolean
+  transitionLength?: string
   className?: string
   content?: React.ReactNode
 }
@@ -23,6 +24,7 @@ export function CircularProgress({
   segments = 0,
   segmentGapRatio = 0.35,
   muted = false,
+  transitionLength = "1000ms",
   className,
   content
 }: CircularProgressProps) {
@@ -52,7 +54,7 @@ export function CircularProgress({
           "--percent-to-px": `${percentPx}px`,
           "--gap-percent": "0",
           "--offset-factor": "0",
-          "--transition-length": "1s",
+          "--transition-length": transitionLength,
           "--delay": "0s",
           "--percent-to-deg": "3.6deg",
           transform: "translateZ(0)"
