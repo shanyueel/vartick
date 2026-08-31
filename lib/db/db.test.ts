@@ -67,7 +67,7 @@ describe("IndexedDB Tests", () => {
   /* activeTimer Table */
   describe("activeTimer table", () => {
     const startTime = new Date("2026-01-01T12:00:00Z").getTime()
-    const durationSec = 25 * 60
+    const durationMs = 25 * 60 * 1000
 
     test("stores a running timer", async () => {
       await db.activeTimer.put({
@@ -75,8 +75,8 @@ describe("IndexedDB Tests", () => {
         type: "shortBreak",
         status: "running",
         startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        endsAt: startTime + durationMs,
+        plannedDurationMs: durationMs
       })
 
       const timer = await db.activeTimer.get("singleton")
@@ -85,20 +85,20 @@ describe("IndexedDB Tests", () => {
 
       expect(timer.type).toBe("shortBreak")
       expect(timer.startedAt).toBe(startTime)
-      expect(timer.endsAt).toBe(startTime + durationSec * 1000)
-      expect(timer.plannedDurationSec).toBe(durationSec)
+      expect(timer.endsAt).toBe(startTime + durationMs)
+      expect(timer.plannedDurationMs).toBe(durationMs)
     })
 
     test("stores a paused timer", async () => {
-      const remainingSec = durationSec - 5 * 60
+      const remainingMs = durationMs - 5 * 60 * 1000
 
       await db.activeTimer.put({
         id: "singleton",
         type: "shortBreak",
         status: "paused",
         startedAt: startTime,
-        remainingSec,
-        plannedDurationSec: durationSec
+        remainingMs,
+        plannedDurationMs: durationMs
       })
 
       const timer = await db.activeTimer.get("singleton")
@@ -107,8 +107,8 @@ describe("IndexedDB Tests", () => {
 
       expect(timer.type).toBe("shortBreak")
       expect(timer.startedAt).toBe(startTime)
-      expect(timer.remainingSec).toBe(remainingSec)
-      expect(timer.plannedDurationSec).toBe(durationSec)
+      expect(timer.remainingMs).toBe(remainingMs)
+      expect(timer.plannedDurationMs).toBe(durationMs)
     })
 
     test("put() fully overwrites and no stale fields survive a status change", async () => {
@@ -118,20 +118,20 @@ describe("IndexedDB Tests", () => {
         type: "shortBreak",
         status: "running",
         startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        endsAt: startTime + durationMs,
+        plannedDurationMs: durationMs
       })
 
       // pause after 5 minutes
-      const remainingSec = durationSec - 5 * 60
+      const remainingMs = durationMs - 5 * 60 * 1000
 
       await db.activeTimer.put({
         id: "singleton",
         type: "shortBreak",
         status: "paused",
         startedAt: startTime,
-        remainingSec,
-        plannedDurationSec: durationSec
+        remainingMs,
+        plannedDurationMs: durationMs
       })
 
       const pausedTimer = await db.activeTimer.get("singleton")
@@ -140,7 +140,7 @@ describe("IndexedDB Tests", () => {
 
       // resume
       const resumedStartTime = new Date("2026-01-01T12:30:00Z").getTime()
-      const newEndsAt = resumedStartTime + remainingSec * 1000
+      const newEndsAt = resumedStartTime + remainingMs
 
       await db.activeTimer.put({
         id: "singleton",
@@ -148,12 +148,12 @@ describe("IndexedDB Tests", () => {
         status: "running",
         startedAt: startTime,
         endsAt: newEndsAt,
-        plannedDurationSec: durationSec
+        plannedDurationMs: durationMs
       })
 
       const resumedTimer = await db.activeTimer.get("singleton")
       if (resumedTimer?.status !== "running") throw new Error("expected running timer")
-      expect("remainingSec" in resumedTimer).toBe(false)
+      expect("remainingMs" in resumedTimer).toBe(false)
       expect(resumedTimer.endsAt).toBe(newEndsAt)
     })
 
@@ -163,8 +163,8 @@ describe("IndexedDB Tests", () => {
         type: "focus",
         status: "running",
         startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        endsAt: startTime + durationMs,
+        plannedDurationMs: durationMs
       })
 
       await db.activeTimer.put({
@@ -172,8 +172,8 @@ describe("IndexedDB Tests", () => {
         type: "longBreak",
         status: "paused",
         startedAt: startTime,
-        remainingSec: durationSec - 60,
-        plannedDurationSec: durationSec
+        remainingMs: durationMs - 60 * 1000,
+        plannedDurationMs: durationMs
       })
 
       const allTimers = await db.activeTimer.count()
@@ -186,8 +186,8 @@ describe("IndexedDB Tests", () => {
         type: "focus",
         status: "running",
         startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        endsAt: startTime + durationMs,
+        plannedDurationMs: durationMs
       })
 
       await db.activeTimer.delete("singleton")
@@ -208,8 +208,8 @@ describe("IndexedDB Tests", () => {
         type: "focus",
         startedAt: startTime,
         endedAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec,
-        actualDurationSec: 15 * 60, // user abandoned after 15 minutes
+        plannedDurationMs: durationSec * 1000,
+        actualDurationMs: 15 * 60 * 1000, // user abandoned after 15 minutes
         status: "abandoned"
       })
 
@@ -219,8 +219,8 @@ describe("IndexedDB Tests", () => {
       expect(session?.type).toBe("focus")
       expect(session?.startedAt).toBe(startTime)
       expect(session?.endedAt).toBe(startTime + durationSec * 1000)
-      expect(session?.plannedDurationSec).toBe(25 * 60)
-      expect(session?.actualDurationSec).toBe(15 * 60)
+      expect(session?.plannedDurationMs).toBe(25 * 60 * 1000)
+      expect(session?.actualDurationMs).toBe(15 * 60 * 1000)
       expect(session?.status).toBe("abandoned")
     })
 
@@ -231,8 +231,8 @@ describe("IndexedDB Tests", () => {
           type: "focus",
           startedAt: new Date("2026-01-01T12:00:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:30:00Z").getTime(),
-          plannedDurationSec: 25 * 60,
-          actualDurationSec: 25 * 60,
+          plannedDurationMs: 25 * 60 * 1000,
+          actualDurationMs: 25 * 60 * 1000,
           status: "completed"
         },
         {
@@ -240,8 +240,8 @@ describe("IndexedDB Tests", () => {
           type: "shortBreak",
           startedAt: new Date("2026-01-01T12:30:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:35:00Z").getTime(),
-          plannedDurationSec: 5 * 60,
-          actualDurationSec: 5 * 60,
+          plannedDurationMs: 5 * 60 * 1000,
+          actualDurationMs: 5 * 60 * 1000,
           status: "completed"
         },
         {
@@ -249,8 +249,8 @@ describe("IndexedDB Tests", () => {
           type: "focus",
           startedAt: new Date("2026-01-01T12:35:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:50:00Z").getTime(),
-          plannedDurationSec: 15 * 60,
-          actualDurationSec: 10 * 60,
+          plannedDurationMs: 15 * 60 * 1000,
+          actualDurationMs: 10 * 60 * 1000,
           status: "abandoned"
         },
         {
@@ -258,8 +258,8 @@ describe("IndexedDB Tests", () => {
           type: "longBreak",
           startedAt: new Date("2026-01-01T12:50:00Z").getTime(),
           endedAt: new Date("2026-01-01T13:05:00Z").getTime(),
-          plannedDurationSec: 15 * 60,
-          actualDurationSec: 15 * 60,
+          plannedDurationMs: 15 * 60 * 1000,
+          actualDurationMs: 15 * 60 * 1000,
           status: "completed"
         }
       ]

@@ -1,4 +1,9 @@
-type TimerStatus = "pending" | "running" | "paused" | "finished" | "ended"
+export type TimerStatus = "pending" | "running" | "paused" | "finished" | "ended"
+
+type TimerCurrent = {
+  status: TimerStatus
+  remainingMs: number
+}
 
 type TimerState =
   | { status: "pending" }
@@ -8,10 +13,10 @@ type TimerState =
 
 export class Timer {
   private state: TimerState = { status: "pending" }
-  private durationSec: number
+  private durationMs: number
 
-  private static validateDuration(durationSec: number) {
-    if (durationSec <= 0 || !Number.isInteger(durationSec)) {
+  private static validateDuration(durationMs: number) {
+    if (durationMs <= 0 || !Number.isInteger(durationMs)) {
       throw new Error("Invalid timer duration, must be a positive integer")
     }
   }
@@ -20,28 +25,28 @@ export class Timer {
     return this.state.status === "running" && Date.now() >= this.state.endsAt
   }
 
-  constructor(durationSec: number) {
-    Timer.validateDuration(durationSec)
+  constructor(durationMs: number) {
+    Timer.validateDuration(durationMs)
 
-    this.durationSec = durationSec
+    this.durationMs = durationMs
   }
 
-  getDurationSec() {
-    return this.durationSec
+  getDurationMs() {
+    return this.durationMs
   }
 
-  getCurrent(): { status: TimerStatus; remainingSec: number } {
+  getCurrent(): TimerCurrent {
     if (this.state.status === "pending") {
       return {
         status: "pending",
-        remainingSec: this.durationSec
+        remainingMs: this.durationMs
       }
     }
 
     if (this.state.status === "paused") {
       return {
         status: "paused",
-        remainingSec: Math.ceil(this.state.remainingMs / 1000)
+        remainingMs: this.state.remainingMs
       }
     }
 
@@ -50,14 +55,14 @@ export class Timer {
       const remainingMs = this.state.endsAt - Date.now()
 
       return remainingMs <= 0
-        ? { status: "finished", remainingSec: 0 }
-        : { status: "running", remainingSec: Math.ceil(remainingMs / 1000) }
+        ? { status: "finished", remainingMs: 0 }
+        : { status: "running", remainingMs }
     }
 
     // status: "ended"
     return {
       status: "ended",
-      remainingSec: Math.ceil(this.state.remainingMs / 1000)
+      remainingMs: this.state.remainingMs
     }
   }
 
@@ -76,7 +81,7 @@ export class Timer {
     }
 
     const startedAt = Date.now()
-    this.state = { status: "running", startedAt, endsAt: startedAt + this.durationSec * 1000 }
+    this.state = { status: "running", startedAt, endsAt: startedAt + this.durationMs }
   }
 
   pause() {
@@ -133,14 +138,14 @@ export class Timer {
     if (this.state.status === "pending") {
       this.state = {
         status: "ended",
-        remainingMs: this.durationSec * 1000
+        remainingMs: this.durationMs
       }
 
       return {
         startedAt: undefined,
         endedAt: undefined,
-        remainingSec: this.durationSec,
-        durationSec: this.durationSec
+        remainingMs: this.durationMs,
+        durationMs: this.durationMs
       }
     }
 
@@ -159,19 +164,19 @@ export class Timer {
     return {
       startedAt,
       endedAt: now,
-      remainingSec: Math.ceil(remainingMs / 1000),
-      durationSec: this.durationSec
+      remainingMs,
+      durationMs: this.durationMs
     }
   }
 
-  reset(durationSec: number) {
-    Timer.validateDuration(durationSec)
+  reset(durationMs: number) {
+    Timer.validateDuration(durationMs)
 
     if (this.state.status !== "ended") {
       throw new Error("Timer can't be reset since it is not ended")
     }
 
-    this.durationSec = durationSec
+    this.durationMs = durationMs
     this.state = { status: "pending" }
   }
 }

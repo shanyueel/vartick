@@ -8,7 +8,7 @@ export interface RunningActiveTimer {
   status: "running"
   startedAt: number // epoch ms
   endsAt: number // epoch ms — absolute target, never a countdown counter
-  plannedDurationSec: number
+  plannedDurationMs: number
 }
 
 export interface PausedActiveTimer {
@@ -16,8 +16,8 @@ export interface PausedActiveTimer {
   type: "focus" | "shortBreak" | "longBreak"
   status: "paused"
   startedAt: number // epoch ms
-  remainingSec: number // written when paused; used to recompute endsAt when resumed
-  plannedDurationSec: number
+  remainingMs: number // written when paused; used to recompute endsAt when resumed
+  plannedDurationMs: number
 }
 
 export type ActiveTimer = RunningActiveTimer | PausedActiveTimer
@@ -27,8 +27,8 @@ export interface Session {
   type: "focus" | "shortBreak" | "longBreak"
   startedAt: number // epoch ms
   endedAt: number
-  plannedDurationSec: number
-  actualDurationSec: number
+  plannedDurationMs: number
+  actualDurationMs: number
   status: "completed" | "abandoned"
 }
 

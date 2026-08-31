@@ -15,3 +15,15 @@ export const formatDuration = (seconds: number): string => {
 
   return `${formattedMinutes}:${formattedSeconds}`
 }
+
+export const convertMsToSec = (ms: number): number => {
+  if (!Number.isInteger(ms)) {
+    throw new Error("remainingMs must be an integer")
+  }
+
+  if (ms < 0) {
+    throw new Error("remainingMs cannot be negative")
+  }
+
+  return Math.ceil(ms / 1000)
+}
