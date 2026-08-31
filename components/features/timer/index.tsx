@@ -36,8 +36,6 @@ export const PomodoroTimer = ({
 
     const intervalId = setInterval(updateCurrent, REFRESH_PERIOD_MS)
 
-    console.log("updating timer", current)
-
     return () => clearInterval(intervalId)
   }, [current.status, updateCurrent, current])
 

@@ -11,29 +11,50 @@ interface TimerControlsProps {
 
 export const TimerControls = ({ timer, current, updateCurrent }: TimerControlsProps) => {
   const { status } = current
+  const getStatus = () => timer.getCurrent().status
 
   const handleStart = () => {
+    if (getStatus() !== "pending") {
+      updateCurrent()
+      return
+    }
+
     timer.start()
     updateCurrent()
   }
 
   const handlePause = () => {
+    if (getStatus() !== "running") {
+      updateCurrent()
+      return
+    }
+
     timer.pause()
     updateCurrent()
   }
 
   const handleResume = () => {
+    if (getStatus() !== "paused") {
+      updateCurrent()
+      return
+    }
+
     timer.resume()
     updateCurrent()
   }
 
   const handleEnd = () => {
+    if (getStatus() === "pending" || getStatus() === "ended") {
+      updateCurrent()
+      return
+    }
+
     timer.end()
     updateCurrent()
   }
 
   const handleReset = () => {
-    if (status !== "ended") {
+    if (getStatus() !== "ended") {
       timer.end()
     }
 
