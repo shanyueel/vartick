@@ -1,6 +1,6 @@
 "use client"
 
-import { convertMsToSec, formatDuration } from "@/lib/utils"
+import { convertMsToSec, formatDuration } from "@/lib/utils/time"
 import { Timer } from "@/lib/timer/timer"
 import { CircularProgress } from "@/components/ui/circular-progress"
 
