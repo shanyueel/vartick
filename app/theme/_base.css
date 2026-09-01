@@ -152,8 +152,8 @@
   --tracking-tight: -0.01em;
   --tracking-normal: 0;
   --tracking-wide: 0.07em;
-  --tracking-wider: 0.85em;
-  --tracking-widest: 0.1em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.15em;
 
   /* Radius */
   --radius: 0.75rem;
