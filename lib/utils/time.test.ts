@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { formatDuration, convertMsToSec } from "./time"
+import { formatDuration, convertMsToSec, isTimestamp, isRemainder } from "./time"
 
 describe("formatDuration", () => {
   test("throws error if the input is invalid", () => {
@@ -34,5 +34,31 @@ describe("convertMsToSec", () => {
     expect(convertMsToSec(2500)).toBe(3)
     expect(convertMsToSec(3000)).toBe(3)
     expect(convertMsToSec(3500)).toBe(4)
+  })
+})
+
+describe("isTimestamp", () => {
+  test("returns true for integers", () => {
+    expect(isTimestamp(0)).toBe(true)
+    expect(isTimestamp(1)).toBe(true)
+    expect(isTimestamp(-1)).toBe(true)
+    expect(isTimestamp(100)).toBe(true)
+  })
+})
+
+describe("isRemainder", () => {
+  test("returns true for integers between 0 and the duration", () => {
+    expect(isRemainder(0, 100)).toBe(true)
+    expect(isRemainder(50, 100)).toBe(true)
+    expect(isRemainder(100, 100)).toBe(true)
+  })
+
+  test("returns false for non-integers or values outside the range", () => {
+    expect(isRemainder(-1, 100)).toBe(false)
+    expect(isRemainder(101, 100)).toBe(false)
+    expect(isRemainder(1.5, 100)).toBe(false)
+    expect(isRemainder("50", 100)).toBe(false)
+    expect(isRemainder(null, 100)).toBe(false)
+    expect(isRemainder(undefined, 100)).toBe(false)
   })
 })

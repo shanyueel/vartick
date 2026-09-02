@@ -27,3 +27,15 @@ export const convertMsToSec = (ms: number): number => {
 
   return Math.ceil(ms / 1000)
 }
+
+export const isTimestamp = (value: unknown) => {
+  return Number.isInteger(value)
+}
+
+export const isRemainder = (value: unknown, durationMs: number) => {
+  const isInteger = Number.isInteger(value)
+  const isNonNegative = (value as number) >= 0
+  const isWithinDuration = (value as number) <= durationMs
+
+  return isInteger && isNonNegative && isWithinDuration
+}

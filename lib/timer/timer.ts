@@ -1,3 +1,5 @@
+import { isRemainder, isTimestamp } from "@/lib/utils/time"
+
 export type TimerStatus = "pending" | "running" | "paused" | "finished" | "ended"
 
 type TimerCurrent = {
@@ -11,6 +13,13 @@ export type TimerState =
   | { status: "paused"; startedAt: number; remainingMs: number }
   | { status: "ended"; startedAt?: number; remainingMs: number }
 
+const ALLOWED_KEYS: Record<TimerState["status"], readonly string[]> = {
+  pending: ["status"],
+  running: ["status", "startedAt", "endsAt"],
+  paused: ["status", "startedAt", "remainingMs"],
+  ended: ["status", "startedAt", "remainingMs"]
+}
+
 export class Timer {
   private state: TimerState = { status: "pending" }
   private durationMs: number
@@ -21,10 +30,65 @@ export class Timer {
     }
   }
 
+  private static validateSnapshot(snapshot: TimerState, durationMs: number) {
+    const { status } = snapshot
+
+    // check if the status is valid
+    const allowed = ALLOWED_KEYS[status]
+    if (!allowed) {
+      throw new Error(`Invalid timer snapshot, unknown status: ${status}`)
+    }
+
+    // check if the snapshot has any unexpected keys
+    const unexpected = Object.keys(snapshot).filter((key) => !allowed.includes(key))
+    if (unexpected.length > 0) {
+      throw new Error(
+        `Invalid '${status}' timer snapshot, unexpected keys: ${unexpected.join(", ")}`
+      )
+    }
+
+    if (status === "pending") return
+
+    // checked by field: the three rules below are the same wherever a field appears,
+    // and a missing key arrives as undefined, failing them just as a malformed value.
+    const { startedAt, endsAt, remainingMs } = snapshot as {
+      startedAt?: unknown
+      endsAt?: unknown
+      remainingMs?: unknown
+    }
+
+    // startedAt: only "ended" can lack a startedAt: a timer ended before it started.
+    const startedAtIsOptional = status === "ended" && startedAt === undefined
+    if (!startedAtIsOptional && !isTimestamp(startedAt)) {
+      throw new Error(`Invalid '${status}' timer snapshot, startedAt must be an integer`)
+    }
+
+    // endsAt: only "running" has an endsAt, and it must be after startedAt.
+    if (status === "running") {
+      if (!isTimestamp(endsAt) || (endsAt as number) <= (startedAt as number)) {
+        throw new Error(
+          "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
+        )
+      }
+
+      return
+    }
+
+    // remainingMs: "paused" and "ended" have a remainingMs, which must be between 0 and the duration.
+    if (!isRemainder(remainingMs, durationMs)) {
+      throw new Error(
+        `Invalid '${status}' timer snapshot, remainingMs must be between 0 and the duration`
+      )
+    }
+  }
+
   private constructor(durationMs: number, initialState?: TimerState) {
     Timer.validateDuration(durationMs)
 
-    if (initialState) this.state = initialState
+    if (initialState) {
+      Timer.validateSnapshot(initialState, durationMs)
+      this.state = initialState
+    }
 
     this.durationMs = durationMs
   }
@@ -34,7 +98,12 @@ export class Timer {
   }
 
   static fromSnapshot(durationMs: number, snapshot: TimerState) {
-    return new Timer(durationMs, snapshot)
+    // clean the snapshot of any undefined values, which are not allowed in the TimerState type
+    const cleaned = Object.fromEntries(
+      Object.entries(snapshot).filter(([, value]) => value !== undefined)
+    ) as TimerState
+
+    return new Timer(durationMs, { ...cleaned })
   }
 
   private isFinished() {
@@ -77,7 +146,7 @@ export class Timer {
   }
 
   snapshot(): TimerState {
-    return this.state
+    return { ...this.state }
   }
 
   start() {
