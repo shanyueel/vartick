@@ -5,7 +5,7 @@ type TimerCurrent = {
   remainingMs: number
 }
 
-type TimerState =
+export type TimerState =
   | { status: "pending" }
   | { status: "running"; startedAt: number; endsAt: number }
   | { status: "paused"; startedAt: number; remainingMs: number }
@@ -21,14 +21,24 @@ export class Timer {
     }
   }
 
-  private isFinished() {
-    return this.state.status === "running" && Date.now() >= this.state.endsAt
-  }
-
-  constructor(durationMs: number) {
+  private constructor(durationMs: number, initialState?: TimerState) {
     Timer.validateDuration(durationMs)
 
+    if (initialState) this.state = initialState
+
     this.durationMs = durationMs
+  }
+
+  static create(durationMs: number) {
+    return new Timer(durationMs)
+  }
+
+  static fromSnapshot(durationMs: number, snapshot: TimerState) {
+    return new Timer(durationMs, snapshot)
+  }
+
+  private isFinished() {
+    return this.state.status === "running" && Date.now() >= this.state.endsAt
   }
 
   getDurationMs() {
@@ -64,6 +74,10 @@ export class Timer {
       status: "ended",
       remainingMs: this.state.remainingMs
     }
+  }
+
+  snapshot(): TimerState {
+    return this.state
   }
 
   start() {

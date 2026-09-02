@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
-import { Timer } from "./timer"
+import { Timer, type TimerState } from "./timer"
 
 const BASE_TIME = Date.parse("2026-01-01T00:00:00.000Z")
 
@@ -14,20 +14,50 @@ describe("Timer Tests", () => {
   beforeEach(() => vi.useFakeTimers({ now: BASE_TIME }))
   afterEach(() => vi.useRealTimers())
 
-  describe("construction", () => {
+  describe("create()", () => {
     test.for(invalidDurations)(
       "throws error if the parameters are invalid ($name)",
       ({ duration }) => {
-        expect(() => new Timer(duration)).toThrow(
+        expect(() => Timer.create(duration)).toThrow(
           "Invalid timer duration, must be a positive integer"
         )
       }
     )
   })
 
+  describe("Timer.fromSnapshot()", () => {
+    test.for([
+      {
+        status: "pending"
+      },
+      {
+        status: "running",
+        startedAt: BASE_TIME - 3000,
+        endsAt: BASE_TIME + 7000
+      },
+      {
+        status: "paused",
+        startedAt: BASE_TIME - 3000,
+        remainingMs: 7000
+      },
+      {
+        status: "ended",
+        startedAt: BASE_TIME - 3000,
+        remainingMs: 7000
+      }
+    ] as TimerState[])("restores a timer state from a snapshot ($status)", (snapshot) => {
+      const timer = Timer.fromSnapshot(10000, snapshot)
+
+      expect(timer.getCurrent()).toEqual({
+        status: snapshot.status,
+        remainingMs: snapshot.status === "pending" ? 10000 : 7000
+      })
+    })
+  })
+
   describe("getDurationMs()", () => {
     test("returns the duration in milliseconds, unaffected by the timer lifecycle", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       expect(timer.getDurationMs()).toBe(10000)
 
@@ -53,7 +83,7 @@ describe("Timer Tests", () => {
 
   describe("getCurrent()", () => {
     test("returns 'pending' status and remaining milliseconds before timer is started", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       expect(timer.getCurrent()).toEqual({
         status: "pending",
@@ -62,7 +92,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'running' status and remaining milliseconds while the timer is running", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
@@ -74,7 +104,7 @@ describe("Timer Tests", () => {
     })
 
     test("keeps the sub-second remainder partway through a second", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3400)
@@ -86,7 +116,7 @@ describe("Timer Tests", () => {
     })
 
     test("stays 'running' with a single millisecond left", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(9999)
@@ -98,7 +128,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'paused' status and remaining milliseconds when the timer is paused", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
@@ -111,7 +141,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'running' status and remaining milliseconds after resuming", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(1000)
@@ -125,7 +155,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'finished' status and remaining milliseconds after the timer runs out", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(10000)
@@ -145,7 +175,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'ended' status when a timer is ended before it is started", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.end()
 
@@ -156,7 +186,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'ended' status and remaining milliseconds after the timer is ended", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
@@ -169,7 +199,7 @@ describe("Timer Tests", () => {
     })
 
     test("returns 'ended' status when a finished timer is ended", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(10000)
@@ -177,6 +207,50 @@ describe("Timer Tests", () => {
 
       expect(timer.getCurrent()).toEqual({
         status: "ended",
+        remainingMs: 0
+      })
+    })
+  })
+
+  describe("snapshot()", () => {
+    test("returns the current state of the timer", () => {
+      const timer = Timer.create(10000)
+
+      expect(timer.snapshot()).toEqual({
+        status: "pending"
+      })
+
+      timer.start()
+      vi.advanceTimersByTime(3000)
+
+      expect(timer.snapshot()).toEqual({
+        status: "running",
+        startedAt: BASE_TIME,
+        endsAt: BASE_TIME + 10000
+      })
+
+      timer.pause()
+
+      expect(timer.snapshot()).toEqual({
+        status: "paused",
+        startedAt: BASE_TIME,
+        remainingMs: 7000
+      })
+
+      timer.resume()
+      vi.advanceTimersByTime(7000)
+
+      expect(timer.snapshot()).toEqual({
+        status: "running",
+        startedAt: BASE_TIME,
+        endsAt: BASE_TIME + 10000
+      })
+
+      timer.end()
+
+      expect(timer.snapshot()).toEqual({
+        status: "ended",
+        startedAt: BASE_TIME,
         remainingMs: 0
       })
     })
@@ -215,7 +289,7 @@ describe("Timer Tests", () => {
         message: "Timer can't be started since it has ended"
       }
     ])("throws error if the timer is not pending ($name)", ({ arrange, message }) => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       arrange(timer)
 
@@ -244,7 +318,7 @@ describe("Timer Tests", () => {
         message: "Timer can't be paused since it has ended"
       }
     ])("throws error if the timer can't be paused ($name)", ({ arrange, message }) => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       arrange(timer)
 
@@ -252,7 +326,7 @@ describe("Timer Tests", () => {
     })
 
     test("freezes the exact sub-second remainder it was paused at", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3400)
@@ -273,7 +347,7 @@ describe("Timer Tests", () => {
     })
 
     test("no-op if the timer is already paused", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
@@ -313,7 +387,7 @@ describe("Timer Tests", () => {
         message: "Timer can't be resumed since it has ended"
       }
     ])("throws error if the timer can't be resumed ($name)", ({ arrange, message }) => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       arrange(timer)
 
@@ -321,7 +395,7 @@ describe("Timer Tests", () => {
     })
 
     test("no-op if the timer is already running", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
@@ -345,7 +419,7 @@ describe("Timer Tests", () => {
 
   describe("end()", () => {
     test("throws error if the timer has already ended", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.end()
 
@@ -405,7 +479,7 @@ describe("Timer Tests", () => {
         }
       }
     ])("returns the final snapshot of the timer ($name)", ({ arrange, expected }) => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       arrange(timer)
 
@@ -417,7 +491,7 @@ describe("Timer Tests", () => {
     test.for(invalidDurations)(
       "throws error if the parameters are invalid ($name)",
       ({ duration }) => {
-        const timer = new Timer(10000)
+        const timer = Timer.create(10000)
 
         timer.end()
 
@@ -452,7 +526,7 @@ describe("Timer Tests", () => {
         }
       }
     ])("throws error if the timer has not ended ($name)", ({ arrange }) => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       arrange(timer)
 
@@ -460,7 +534,7 @@ describe("Timer Tests", () => {
     })
 
     test("resets the timer with the given duration", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
@@ -475,7 +549,7 @@ describe("Timer Tests", () => {
     })
 
     test("an ended timer can be reset and started again", () => {
-      const timer = new Timer(10000)
+      const timer = Timer.create(10000)
 
       timer.start()
       vi.advanceTimersByTime(3000)
