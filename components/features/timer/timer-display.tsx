@@ -32,17 +32,18 @@ export const TimerDisplay = ({
   return (
     <div className="flex flex-col items-center gap-4">
       <CircularProgress
-        className="size-70"
+        className="size-70 md:size-80"
         max={durationMs}
         min={0}
         value={value}
         color={color}
         segments={segmented ? 60 : undefined}
+        strokeWidth={{ base: 7, md: 8 }}
         muted={status === "pending" || status === "paused" || status === "ended"}
         transitionLength={`${refreshPeriod}ms`}
         content={
           <div className="flex flex-col items-center justify-center gap-4">
-            <span className="text-5xl font-semibold tracking-wide">
+            <span className="text-5xl font-semibold tracking-widest text-center tabular-nums">
               {formatDuration(convertMsToSec(remainingMs))}
             </span>
             {subContent}

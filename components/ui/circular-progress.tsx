@@ -3,6 +3,47 @@
 import { useId } from "react"
 import { cn } from "@/lib/utils/style"
 
+const STROKE_WIDTH_CLASSES = {
+  base: {
+    6: "[--stroke-width:6]",
+    7: "[--stroke-width:7]",
+    8: "[--stroke-width:8]",
+    9: "[--stroke-width:9]",
+    10: "[--stroke-width:10]"
+  },
+  md: {
+    6: "md:[--stroke-width:6]",
+    7: "md:[--stroke-width:7]",
+    8: "md:[--stroke-width:8]",
+    9: "md:[--stroke-width:9]",
+    10: "md:[--stroke-width:10]"
+  },
+  lg: {
+    6: "lg:[--stroke-width:6]",
+    7: "lg:[--stroke-width:7]",
+    8: "lg:[--stroke-width:8]",
+    9: "lg:[--stroke-width:9]",
+    10: "lg:[--stroke-width:10]"
+  }
+}
+
+type StrokeWidth = keyof typeof STROKE_WIDTH_CLASSES.base
+type ResponsiveStrokeWidth = { base: StrokeWidth; md?: StrokeWidth; lg?: StrokeWidth }
+
+const strokeWidthClass = (strokeWidth: StrokeWidth | ResponsiveStrokeWidth) => {
+  if (typeof strokeWidth === "number") {
+    return STROKE_WIDTH_CLASSES.base[strokeWidth]
+  }
+
+  const { base, md, lg } = strokeWidth
+
+  return cn(
+    STROKE_WIDTH_CLASSES.base[base],
+    md && STROKE_WIDTH_CLASSES.md[md],
+    lg && STROKE_WIDTH_CLASSES.lg[lg]
+  )
+}
+
 interface CircularProgressProps {
   max?: number
   min?: number
@@ -11,6 +52,7 @@ interface CircularProgressProps {
   segments?: number
   segmentGapRatio?: number
   muted?: boolean
+  strokeWidth?: StrokeWidth | ResponsiveStrokeWidth
   transitionLength?: string
   className?: string
   content?: React.ReactNode
@@ -24,6 +66,7 @@ export function CircularProgress({
   segments = 0,
   segmentGapRatio = 0.35,
   muted = false,
+  strokeWidth = 8,
   transitionLength = "1000ms",
   className,
   content
@@ -46,7 +89,11 @@ export function CircularProgress({
 
   return (
     <div
-      className={cn("relative size-40 text-2xl font-semibold", className)}
+      className={cn(
+        "relative size-40 text-2xl font-semibold",
+        strokeWidthClass(strokeWidth),
+        className
+      )}
       style={
         {
           "--circle-size": "100px",
@@ -61,7 +108,7 @@ export function CircularProgress({
         } as React.CSSProperties
       }
     >
-      <svg fill="none" className="size-full" strokeWidth="2" viewBox="0 0 100 100">
+      <svg fill="none" className="size-full" viewBox="0 0 100 100">
         <defs>
           <mask id={maskId}>
             <circle
@@ -69,9 +116,9 @@ export function CircularProgress({
               cy="50"
               r="45"
               stroke="white"
-              strokeWidth="10"
               fill="none"
               strokeDasharray={`${dashLength} ${gapLength}`}
+              style={{ strokeWidth: "var(--stroke-width)" }}
             />
           </mask>
         </defs>
@@ -80,14 +127,14 @@ export function CircularProgress({
             cx="50"
             cy="50"
             r="45"
-            strokeWidth="10"
             strokeDashoffset="0"
             strokeLinecap="butt"
             strokeLinejoin="round"
-            className="opacity-100"
+            opacity={1}
             style={
               {
                 stroke: trackColor,
+                strokeWidth: "var(--stroke-width)",
                 "--stroke-percent": 100 - currentPercent,
                 "--offset-factor-secondary": "calc(1 - var(--offset-factor))",
                 strokeDasharray:
@@ -103,14 +150,14 @@ export function CircularProgress({
             cx="50"
             cy="50"
             r="45"
-            strokeWidth="10"
             strokeDashoffset="0"
             strokeLinecap="butt"
             strokeLinejoin="round"
-            className="opacity-100"
+            opacity={1}
             style={
               {
                 stroke: progressColor,
+                strokeWidth: "var(--stroke-width)",
                 "--stroke-percent": currentPercent,
                 strokeDasharray:
                   "calc(var(--stroke-percent) * var(--percent-to-px)) var(--circumference)",
@@ -129,10 +176,10 @@ export function CircularProgress({
               cy="50"
               r="45"
               stroke="black"
-              strokeWidth="10"
               fill="none"
               strokeDasharray={circumference}
               opacity={0.5}
+              style={{ strokeWidth: "var(--stroke-width)" }}
             />
           )}
         </g>
