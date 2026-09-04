@@ -8,7 +8,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["lib/**/*.ts"],
-      exclude: ["lib/**/*.test.ts", "lib/utils/index.ts", "lib/utils/style.ts"]
+      exclude: ["lib/**/*.test.ts", "lib/**/type.ts", "lib/utils/index.ts", "lib/utils/style.ts"]
     }
   }
 })

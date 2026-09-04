@@ -1,0 +1,13 @@
+[data-component="timer"] {
+  --timer-focus: var(--color-primary);
+  --timer-focus-muted: color-mix(in oklch, var(--color-primary) 20%, transparent);
+  --timer-break: var(--color-green-600);
+  --timer-break-muted: color-mix(in oklch, var(--color-green-600) 20%, transparent);
+}
+
+@theme inline {
+  --color-focus: var(--timer-focus);
+  --color-focus-muted: var(--timer-focus-muted);
+  --color-break: var(--timer-break);
+  --color-break-muted: var(--timer-break-muted);
+}
