@@ -1,17 +1,10 @@
 import { isRemainder, isTimestamp } from "@/lib/utils/time"
-
-export type TimerStatus = "pending" | "running" | "paused" | "finished" | "ended"
+import type { TimerState, TimerStatus } from "@/lib/timer/type"
 
 type TimerCurrent = {
   status: TimerStatus
   remainingMs: number
 }
-
-export type TimerState =
-  | { status: "pending" }
-  | { status: "running"; startedAt: number; endsAt: number }
-  | { status: "paused"; startedAt: number; remainingMs: number }
-  | { status: "ended"; startedAt?: number; remainingMs: number }
 
 const ALLOWED_KEYS: Record<TimerState["status"], readonly string[]> = {
   pending: ["status"],

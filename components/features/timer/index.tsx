@@ -2,16 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
-import { Timer, type TimerState, type TimerStatus } from "@/lib/timer/timer"
+import { Timer } from "@/lib/timer/timer"
+import type { TimerStatus, SessionType, SessionSetting, InitialState } from "@/lib/timer/type"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
-import { SessionType, SessionSetting } from "@/lib/timer/type"
 
-interface InitialState {
-  currentSessionIdx: number
-  currentTimerSnapshot: TimerState
-}
 interface PomodoroTimerProps extends SessionSetting {
   initialState?: InitialState
   className?: string

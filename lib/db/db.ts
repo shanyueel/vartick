@@ -1,10 +1,11 @@
 import Dexie, { type EntityTable, type Table } from "dexie"
+import type { SessionSetting, SessionType } from "@/lib/timer/type"
 
 // The one currently-running timer, if any. Singleton row, deleted once the
 // timer concludes and its result is written to `sessions`.
 export interface RunningActiveTimer {
   id: "singleton"
-  type: "focus" | "shortBreak" | "longBreak"
+  type: SessionType
   status: "running"
   startedAt: number // epoch ms
   endsAt: number // epoch ms — absolute target, never a countdown counter
@@ -13,7 +14,7 @@ export interface RunningActiveTimer {
 
 export interface PausedActiveTimer {
   id: "singleton"
-  type: "focus" | "shortBreak" | "longBreak"
+  type: SessionType
   status: "paused"
   startedAt: number // epoch ms
   remainingMs: number // written when paused; used to recompute endsAt when resumed
@@ -24,7 +25,7 @@ export type ActiveTimer = RunningActiveTimer | PausedActiveTimer
 
 export interface Session {
   id: string
-  type: "focus" | "shortBreak" | "longBreak"
+  type: SessionType
   startedAt: number // epoch ms
   endedAt: number
   plannedDurationMs: number
@@ -32,12 +33,8 @@ export interface Session {
   status: "completed" | "abandoned"
 }
 
-export interface Settings {
+export interface Settings extends SessionSetting {
   id: "singleton"
-  focusMin: number
-  shortBreakMin: number
-  longBreakMin: number
-  cyclesBeforeLongBreak: number
   soundEnabled: boolean
   notificationsEnabled: boolean
 }

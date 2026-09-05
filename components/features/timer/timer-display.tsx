@@ -1,6 +1,6 @@
 "use client"
 
-import { type TimerStatus } from "@/lib/timer/timer"
+import type { TimerStatus } from "@/lib/timer/type"
 import { convertMsToSec, formatDuration } from "@/lib/utils/time"
 import { CircularProgress } from "@/components/ui/circular-progress"
 

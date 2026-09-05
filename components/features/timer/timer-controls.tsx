@@ -1,6 +1,7 @@
 "use client"
 
-import { Timer, type TimerStatus } from "@/lib/timer/timer"
+import { Timer } from "@/lib/timer/timer"
+import type { TimerStatus } from "@/lib/timer/type"
 import { cn } from "@/lib/utils/style"
 import { Button } from "@/components/ui/button"
 
