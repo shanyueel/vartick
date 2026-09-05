@@ -1,102 +1,118 @@
 "use client"
 
-import { Timer } from "@/lib/timer/timer"
+import { Timer, type TimerStatus } from "@/lib/timer/timer"
+import { cn } from "@/lib/utils/style"
 import { Button } from "@/components/ui/button"
 
 interface TimerControlsProps {
   timer: Timer
-  current: ReturnType<Timer["getCurrent"]>
-  updateCurrent: () => void
+  status: TimerStatus
+  updateTimerView: () => void
+  nextSession: () => void
+  restartSession: () => void
+  isFocusSession: boolean
+  isCycleNotStarted: boolean
+  isCycleEnded: boolean
 }
 
-export const TimerControls = ({ timer, current, updateCurrent }: TimerControlsProps) => {
-  const { status } = current
-  const getStatus = () => timer.getCurrent().status
-
+export const TimerControls = ({
+  timer,
+  status,
+  updateTimerView,
+  nextSession,
+  restartSession,
+  isFocusSession,
+  isCycleNotStarted,
+  isCycleEnded
+}: TimerControlsProps) => {
   const handleStart = () => {
-    if (getStatus() !== "pending") {
-      updateCurrent()
-      return
+    const latestStatus = timer.getCurrent().status
+
+    if (latestStatus === "pending") {
+      timer.start()
     }
 
-    timer.start()
-    updateCurrent()
+    updateTimerView()
   }
 
   const handlePause = () => {
-    if (getStatus() !== "running") {
-      updateCurrent()
-      return
+    const latestStatus = timer.getCurrent().status
+
+    if (latestStatus === "running") {
+      timer.pause()
     }
 
-    timer.pause()
-    updateCurrent()
+    updateTimerView()
   }
 
   const handleResume = () => {
-    if (getStatus() !== "paused") {
-      updateCurrent()
-      return
+    const latestStatus = timer.getCurrent().status
+
+    if (latestStatus === "paused") {
+      timer.resume()
     }
 
-    timer.resume()
-    updateCurrent()
+    updateTimerView()
   }
 
-  const handleEnd = () => {
-    if (getStatus() === "pending" || getStatus() === "ended") {
-      updateCurrent()
-      return
-    }
+  const handleNext = () => {
+    nextSession()
 
-    timer.end()
-    updateCurrent()
+    updateTimerView()
   }
 
   const handleReset = () => {
-    if (getStatus() !== "ended") {
-      timer.end()
+    if (isCycleEnded) {
+      restartSession()
     }
 
-    timer.reset(timer.getDurationMs())
-    updateCurrent()
+    updateTimerView()
   }
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col justify-center items-center gap-2 md:flex-row">
       {status === "pending" && (
-        <Button size="lg" variant="secondary" onClick={handleStart}>
-          Start
+        <Button size="xl" variant="secondary" onClick={handleStart}>
+          {isFocusSession ? "Start Focus" : "Start Break"}
         </Button>
       )}
 
       {status === "running" && (
-        <>
-          <Button size="lg" variant="secondary" onClick={handlePause}>
-            Pause
-          </Button>
-          <Button size="lg" variant="destructive" onClick={handleEnd}>
-            Stop
-          </Button>
-        </>
+        <Button size="xl" variant="secondary" onClick={handlePause}>
+          Pause
+        </Button>
       )}
 
       {status === "paused" && (
-        <>
-          <Button size="lg" variant="secondary" onClick={handleResume}>
-            Resume
-          </Button>
-          <Button size="lg" variant="destructive" onClick={handleEnd}>
-            Stop
-          </Button>
-        </>
-      )}
-
-      {(status === "finished" || status === "ended") && (
-        <Button size="lg" variant="secondary" onClick={handleReset}>
-          Reset
+        <Button size="xl" variant="secondary" onClick={handleResume}>
+          Resume
         </Button>
       )}
+
+      {!isCycleEnded && (status === "finished" || status === "ended") && (
+        <Button size="xl" variant="secondary" onClick={handleNext}>
+          Next
+        </Button>
+      )}
+
+      {isCycleEnded && (
+        <Button size="xl" variant="secondary" onClick={handleReset}>
+          Start a new Cycle
+        </Button>
+      )}
+
+      <Button
+        size="sm"
+        variant="ghost"
+        className={cn(
+          "text-muted-foreground",
+          (isCycleNotStarted || status === "finished" || status === "ended") &&
+            "invisible md:hidden"
+        )}
+        onClick={handleNext}
+      >
+        {isFocusSession ? "Abandon" : "Skip Break"}
+      </Button>
     </div>
   )
 }
