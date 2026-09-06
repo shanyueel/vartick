@@ -10,6 +10,8 @@ export type TimerState =
 /* Session */
 export type SessionType = "focus" | "shortBreak" | "longBreak"
 
+export type SessionStatus = "completed" | "abandoned" | "skipped"
+
 export interface SessionSetting {
   focusMin: number
   shortBreakMin: number

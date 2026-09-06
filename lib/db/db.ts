@@ -1,36 +1,30 @@
 import Dexie, { type EntityTable, type Table } from "dexie"
-import type { SessionSetting, SessionType } from "@/lib/timer/type"
+import type { TimerState, SessionSetting, SessionType, SessionStatus } from "@/lib/timer/type"
 
-// The one currently-running timer, if any. Singleton row, deleted once the
-// timer concludes and its result is written to `sessions`.
-export interface RunningActiveTimer {
+/*
+  The one currently-running timer, if any. Singleton row, deleted once the
+  timer concludes and its result is written to `sessions`.
+ */
+export type ActiveTimer = {
   id: "singleton"
-  type: SessionType
-  status: "running"
-  startedAt: number // epoch ms
-  endsAt: number // epoch ms — absolute target, never a countdown counter
-  plannedDurationMs: number
+  sessionIdx: number // index of the session in the current cycle (0-based)
+  timerState: TimerState
 }
 
-export interface PausedActiveTimer {
-  id: "singleton"
-  type: SessionType
-  status: "paused"
-  startedAt: number // epoch ms
-  remainingMs: number // written when paused; used to recompute endsAt when resumed
-  plannedDurationMs: number
-}
-
-export type ActiveTimer = RunningActiveTimer | PausedActiveTimer
-
+/* 
+  A concluded session, written once when a session ends. 
+  - A skipped session never ran, so its startedAt and endedAt both held the moment the user skipped it.
+  - plannedDurationMs is the duration the timer was set to run for
+  - actualDurationMs is how long it actually ran before being completed, abandoned, or skipped.
+*/
 export interface Session {
   id: string
   type: SessionType
-  startedAt: number // epoch ms
-  endedAt: number
+  startedAt: number // epoch ms — when the timer started, or when the session was skipped
+  endedAt: number // epoch ms — when the timer stopped, or when the session was skipped
   plannedDurationMs: number
   actualDurationMs: number
-  status: "completed" | "abandoned"
+  status: SessionStatus
 }
 
 export interface Settings extends SessionSetting {
