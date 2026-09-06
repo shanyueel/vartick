@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
-import { Timer } from "@/lib/timer/timer"
+import { Timer } from "@/lib/timer"
 import type { TimerStatus, SessionType, SessionSetting, InitialState } from "@/lib/timer/type"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
@@ -73,7 +73,7 @@ export const PomodoroTimer = ({
   })
 
   const [currentSessionIdx, setCurrentSessionIdx] = useState(
-    initialState ? initialState.currentSessionIdx : 0
+    initialState ? initialState.sessionIdx : 0
   )
 
   /* Timer */
@@ -81,7 +81,7 @@ export const PomodoroTimer = ({
     if (initialState) {
       const currentSession = sessions[currentSessionIdx]
 
-      return Timer.fromSnapshot(sessionsDuration[currentSession], initialState.currentTimerSnapshot)
+      return Timer.fromSnapshot(sessionsDuration[currentSession], initialState.timerState)
     }
 
     return Timer.create(sessionsDuration[sessions[0]])

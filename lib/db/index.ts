@@ -1,14 +1,12 @@
 import Dexie, { type EntityTable, type Table } from "dexie"
-import type { TimerState, SessionSetting, SessionType, SessionStatus } from "@/lib/timer/type"
+import type { SessionSetting, SessionType, SessionStatus, InitialState } from "@/lib/timer/type"
 
 /*
   The one currently-running timer, if any. Singleton row, deleted once the
   timer concludes and its result is written to `sessions`.
  */
-export type ActiveTimer = {
+export interface ActiveTimer extends InitialState {
   id: "singleton"
-  sessionIdx: number // index of the session in the current cycle (0-based)
-  timerState: TimerState
 }
 
 /* 

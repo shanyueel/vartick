@@ -20,6 +20,6 @@ export interface SessionSetting {
 }
 
 export interface InitialState {
-  currentSessionIdx: number
-  currentTimerSnapshot: TimerState
+  sessionIdx: number // index of the session in the current cycle (0-based)
+  timerState: TimerState
 }

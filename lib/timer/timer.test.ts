@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
-import { Timer } from "./timer"
+import { Timer } from "."
 import type { TimerState } from "@/lib/timer/type"
 
 const BASE_TIME = Date.parse("2026-01-01T00:00:00.000Z")
