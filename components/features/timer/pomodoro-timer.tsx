@@ -157,6 +157,23 @@ export const PomodoroTimer = ({
     return () => clearInterval(intervalId)
   }, [status, updateTimerView])
 
+  // Refresh the timer when a hidden tab becomes visible so the countdown reflects elapsed time.
+  useEffect(() => {
+    if (status !== "running") return
+
+    const recomputeIfVisible = () => {
+      if (document.visibilityState !== "visible") return
+
+      updateTimerView()
+    }
+
+    document.addEventListener("visibilitychange", recomputeIfVisible)
+
+    return () => {
+      document.removeEventListener("visibilitychange", recomputeIfVisible)
+    }
+  }, [status, updateTimerView])
+
   return (
     <div data-component="timer" className={cn("flex flex-col items-center gap-8", className)}>
       <TimerDisplay
