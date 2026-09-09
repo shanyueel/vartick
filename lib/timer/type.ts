@@ -7,6 +7,11 @@ export type TimerState =
   | { status: "paused"; startedAt: number; remainingMs: number }
   | { status: "ended"; startedAt?: number; remainingMs: number }
 
+export type TimerCurrent = {
+  status: TimerStatus
+  remainingMs: number
+}
+
 /* Session */
 export type SessionType = "focus" | "shortBreak" | "longBreak"
 

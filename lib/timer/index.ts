@@ -1,10 +1,5 @@
 import { isRemainder, isTimestamp } from "@/lib/utils/time"
-import type { TimerState, TimerStatus } from "@/lib/timer/type"
-
-type TimerCurrent = {
-  status: TimerStatus
-  remainingMs: number
-}
+import type { TimerState, TimerCurrent } from "@/lib/timer/type"
 
 const ALLOWED_KEYS: Record<TimerState["status"], readonly string[]> = {
   pending: ["status"],
@@ -90,13 +85,19 @@ export class Timer {
     return new Timer(durationMs)
   }
 
-  static fromSnapshot(durationMs: number, snapshot: TimerState) {
-    // clean the snapshot of any undefined values, which are not allowed in the TimerState type
-    const cleaned = Object.fromEntries(
-      Object.entries(snapshot).filter(([, value]) => value !== undefined)
-    ) as TimerState
+  static validateRestorable(durationMs: number, snapshot: TimerState) {
+    Timer.validateDuration(durationMs)
+    Timer.validateSnapshot(snapshot, durationMs)
+  }
 
-    return new Timer(durationMs, { ...cleaned })
+  static fromSnapshot(durationMs: number, snapshot: TimerState) {
+    try {
+      Timer.validateRestorable(durationMs, snapshot)
+    } catch {
+      return null
+    }
+
+    return new Timer(durationMs, snapshot)
   }
 
   private isFinished() {

@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest"
 import { Timer } from "."
-import type { TimerState } from "@/lib/timer/type"
+import type { TimerCurrent, TimerState } from "@/lib/timer/type"
 
 const BASE_TIME = Date.parse("2026-01-01T00:00:00.000Z")
 
@@ -8,6 +8,117 @@ const invalidDurations: { name: string; duration: number }[] = [
   { name: "negative", duration: -1 },
   { name: "zero", duration: 0 },
   { name: "non-integer", duration: 1.5 }
+]
+
+const invalidSnapshots: { name: string; snapshot: unknown; message: string }[] = [
+  {
+    name: "unknown status",
+    snapshot: { status: "unknown" },
+    message: "Invalid timer snapshot, unknown status: unknown"
+  },
+  {
+    name: "pending carrying keys it has no business holding",
+    snapshot: { status: "pending", startedAt: BASE_TIME, endsAt: BASE_TIME + 10000 },
+    message: "Invalid 'pending' timer snapshot, unexpected keys: startedAt, endsAt"
+  },
+  {
+    name: "running carrying a paused timer's remainder",
+    snapshot: {
+      status: "running",
+      startedAt: BASE_TIME,
+      endsAt: BASE_TIME + 10000,
+      remainingMs: 7000
+    },
+    message: "Invalid 'running' timer snapshot, unexpected keys: remainingMs"
+  },
+  {
+    name: "running with a NaN startedAt",
+    snapshot: { status: "running", startedAt: NaN, endsAt: BASE_TIME + 10000 },
+    message: "Invalid 'running' timer snapshot, startedAt must be an integer"
+  },
+  {
+    name: "ended with a fractional startedAt",
+    snapshot: { status: "ended", startedAt: BASE_TIME + 1.5, remainingMs: 7000 },
+    message: "Invalid 'ended' timer snapshot, startedAt must be an integer"
+  },
+  {
+    name: "running missing endsAt entirely",
+    snapshot: { status: "running", startedAt: BASE_TIME },
+    message: "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
+  },
+  {
+    name: "running that ends before it started",
+    snapshot: { status: "running", startedAt: BASE_TIME, endsAt: BASE_TIME - 1 },
+    message: "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
+  },
+  {
+    name: "running that ends exactly when it started",
+    snapshot: { status: "running", startedAt: BASE_TIME, endsAt: BASE_TIME },
+    message: "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
+  },
+  {
+    name: "paused with a negative remainder",
+    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: -1 },
+    message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
+  },
+  {
+    name: "paused with a remainder longer than the duration",
+    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 10001 },
+    message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
+  },
+  {
+    name: "paused with a fractional remainder",
+    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 7000.5 },
+    message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
+  },
+  {
+    name: "ended missing remainingMs entirely",
+    snapshot: { status: "ended", startedAt: BASE_TIME },
+    message: "Invalid 'ended' timer snapshot, remainingMs must be between 0 and the duration"
+  }
+]
+
+const validSnapshots: { name: string; snapshot: TimerState; expected: TimerCurrent }[] = [
+  {
+    name: "pending",
+    snapshot: { status: "pending" },
+    expected: { status: "pending", remainingMs: 10000 }
+  },
+  {
+    name: "running",
+    snapshot: { status: "running", startedAt: BASE_TIME - 3000, endsAt: BASE_TIME + 7000 },
+    expected: { status: "running", remainingMs: 7000 }
+  },
+  {
+    name: "paused - timer paused during the countdown",
+    snapshot: { status: "paused", startedAt: BASE_TIME - 3000, remainingMs: 7000 },
+    expected: { status: "paused", remainingMs: 7000 }
+  },
+  {
+    name: "paused - timer paused when the countdown reached zero",
+    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 0 },
+    expected: { status: "paused", remainingMs: 0 }
+  },
+  {
+    name: "paused - timer paused at the exact moment it was started",
+    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 10000 },
+    expected: { status: "paused", remainingMs: 10000 }
+  },
+  {
+    name: "ended - timer ended during the countdown",
+    snapshot: { status: "ended", startedAt: BASE_TIME - 3000, remainingMs: 7000 },
+    expected: { status: "ended", remainingMs: 7000 }
+  },
+  {
+    name: "ended - timer ended before it ran",
+    snapshot: { status: "ended", remainingMs: 10000 },
+    expected: { status: "ended", remainingMs: 10000 }
+  },
+  {
+    name: "ended - timer that ran to completion",
+    snapshot: { status: "ended", startedAt: BASE_TIME, remainingMs: 0 },
+    expected: { status: "ended", remainingMs: 0 }
+  }
 ]
 
 describe("Timer Tests", () => {
@@ -26,131 +137,137 @@ describe("Timer Tests", () => {
     )
   })
 
-  describe("Timer.fromSnapshot()", () => {
-    test("throws error if the duration is invalid, before the snapshot is read", () => {
-      expect(() => Timer.fromSnapshot(0, { status: "pending" })).toThrow(
+  describe("Timer.validateRestorable()", () => {
+    test("throws error if the duration is invalid", () => {
+      expect(() => Timer.validateRestorable(0, { status: "pending" })).toThrow(
         "Invalid timer duration, must be a positive integer"
       )
     })
 
-    test.for([
-      {
-        name: "unknown status",
-        snapshot: { status: "unknown" },
-        message: "Invalid timer snapshot, unknown status: unknown"
-      },
-      {
-        name: "pending carrying keys it has no business holding",
-        snapshot: { status: "pending", startedAt: BASE_TIME, endsAt: BASE_TIME + 10000 },
-        message: "Invalid 'pending' timer snapshot, unexpected keys: startedAt, endsAt"
-      },
-      {
-        name: "running carrying a paused timer's remainder",
-        snapshot: {
-          status: "running",
-          startedAt: BASE_TIME,
-          endsAt: BASE_TIME + 10000,
-          remainingMs: 7000
-        },
-        message: "Invalid 'running' timer snapshot, unexpected keys: remainingMs"
-      },
-      {
-        name: "running with a NaN startedAt",
-        snapshot: { status: "running", startedAt: NaN, endsAt: BASE_TIME + 10000 },
-        message: "Invalid 'running' timer snapshot, startedAt must be an integer"
-      },
-      {
-        name: "ended with a fractional startedAt",
-        snapshot: { status: "ended", startedAt: BASE_TIME + 1.5, remainingMs: 7000 },
-        message: "Invalid 'ended' timer snapshot, startedAt must be an integer"
-      },
-      {
-        name: "running missing endsAt entirely",
-        snapshot: { status: "running", startedAt: BASE_TIME },
-        message: "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
-      },
-      {
-        name: "running that ends before it started",
-        snapshot: { status: "running", startedAt: BASE_TIME, endsAt: BASE_TIME - 1 },
-        message: "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
-      },
-      {
-        name: "running that ends exactly when it started",
-        snapshot: { status: "running", startedAt: BASE_TIME, endsAt: BASE_TIME },
-        message: "Invalid 'running' timer snapshot, endsAt must be an integer after startedAt"
-      },
-      {
-        name: "paused with a negative remainder",
-        snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: -1 },
-        message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
-      },
-      {
-        name: "paused with a remainder longer than the duration",
-        snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 10001 },
-        message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
-      },
-      {
-        name: "paused with a fractional remainder",
-        snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 7000.5 },
-        message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
-      },
-      {
-        name: "ended missing remainingMs entirely",
-        snapshot: { status: "ended", startedAt: BASE_TIME },
-        message: "Invalid 'ended' timer snapshot, remainingMs must be between 0 and the duration"
+    test.for(invalidSnapshots)(
+      "throws error if the snapshot is invalid ($name)",
+      ({ snapshot, message }) => {
+        expect(() => Timer.validateRestorable(10000, snapshot as TimerState)).toThrow(message)
       }
-    ])("throws error if the snapshot is invalid ($name)", ({ snapshot, message }) => {
-      expect(() => Timer.fromSnapshot(10000, snapshot as TimerState)).toThrow(message)
+    )
+
+    test.for(validSnapshots)(
+      "does not throw error if the duration and snapshot are valid ($name)",
+      ({ snapshot }) => {
+        expect(() => Timer.validateRestorable(10000, snapshot as TimerState)).not.toThrow()
+      }
+    )
+  })
+
+  describe("Timer.fromSnapshot()", () => {
+    test.for(invalidDurations)("returns null for an invalid duration ($name)", ({ duration }) => {
+      expect(Timer.fromSnapshot(duration, { status: "pending" })).toBeNull()
     })
+
+    test.for(invalidSnapshots)("returns null for an invalid snapshot ($name)", ({ snapshot }) => {
+      expect(Timer.fromSnapshot(10000, snapshot as TimerState)).toBeNull()
+    })
+
+    test.for(validSnapshots)(
+      "restores a timer state from a snapshot ($name)",
+      ({ snapshot, expected }) => {
+        const timer = Timer.fromSnapshot(10000, snapshot as TimerState)
+
+        if (!timer) {
+          throw new Error("expected the snapshot to restore a timer")
+        }
+
+        expect(timer.getCurrent()).toEqual(expected)
+      }
+    )
 
     test.for([
       {
-        name: "ended without a startedAt, from a timer ended before it ran",
-        snapshot: { status: "ended", remainingMs: 10000 }
+        name: "pending",
+        arrange: (timer: Timer) => timer
       },
       {
-        name: "ended with a zero remainder, from a timer that ran to completion",
-        snapshot: { status: "ended", startedAt: BASE_TIME, remainingMs: 0 }
-      },
-      {
-        name: "paused with a zero remainder",
-        snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 0 }
-      },
-      {
-        name: "a remainder equal to the full duration",
-        snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 10000 }
-      }
-    ])("accepts a valid snapshot ($name)", ({ snapshot }) => {
-      expect(() => Timer.fromSnapshot(10000, snapshot as TimerState)).not.toThrow()
-    })
+        name: "running, partway through",
+        arrange: (timer: Timer) => {
+          timer.start()
+          vi.advanceTimersByTime(3000)
 
-    test.for([
-      {
-        status: "pending"
+          return timer
+        }
       },
       {
-        status: "running",
-        startedAt: BASE_TIME - 3000,
-        endsAt: BASE_TIME + 7000
-      },
-      {
-        status: "paused",
-        startedAt: BASE_TIME - 3000,
-        remainingMs: 7000
-      },
-      {
-        status: "ended",
-        startedAt: BASE_TIME - 3000,
-        remainingMs: 7000
-      }
-    ] as TimerState[])("restores a timer state from a snapshot ($status)", (snapshot) => {
-      const timer = Timer.fromSnapshot(10000, snapshot)
+        name: "running, with a sub-second remainder",
+        arrange: (timer: Timer) => {
+          timer.start()
+          vi.advanceTimersByTime(3500)
 
-      expect(timer.getCurrent()).toEqual({
-        status: snapshot.status,
-        remainingMs: snapshot.status === "pending" ? 10000 : 7000
-      })
-    })
+          return timer
+        }
+      },
+      {
+        name: "paused",
+        arrange: (timer: Timer) => {
+          timer.start()
+          vi.advanceTimersByTime(3000)
+          timer.pause()
+
+          return timer
+        }
+      },
+      {
+        name: "resumed",
+        arrange: (timer: Timer) => {
+          timer.start()
+          vi.advanceTimersByTime(3000)
+          timer.pause()
+          vi.advanceTimersByTime(5000)
+          timer.resume()
+
+          return timer
+        }
+      },
+      {
+        name: "finished",
+        arrange: (timer: Timer) => {
+          timer.start()
+          vi.advanceTimersByTime(10000)
+
+          return timer
+        }
+      },
+      {
+        name: "ended before it was started",
+        arrange: (timer: Timer) => {
+          timer.end()
+
+          return timer
+        }
+      },
+      {
+        name: "ended partway through",
+        arrange: (timer: Timer) => {
+          timer.start()
+          vi.advanceTimersByTime(3000)
+          timer.end()
+
+          return timer
+        }
+      }
+    ])(
+      "restores a live timer's snapshot into an indistinguishable timer ($name)",
+      ({ arrange }) => {
+        const timer = arrange(Timer.create(10000))
+
+        const [durationMs, snapshot] = [timer.getDurationMs(), timer.snapshot()]
+
+        const restored = Timer.fromSnapshot(durationMs, snapshot)
+
+        expect(restored).not.toBeNull()
+        expect(restored?.snapshot()).toEqual(snapshot)
+        expect(restored?.getCurrent()).toEqual(timer.getCurrent())
+        expect(restored?.getDurationMs()).toBe(durationMs)
+      }
+    )
   })
 
   describe("getDurationMs()", () => {
