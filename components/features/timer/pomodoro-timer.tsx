@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
 import { Timer } from "@/lib/timer"
-import type { TimerStatus, SessionType, SessionSetting, InitialState } from "@/lib/timer/type"
+import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
+import type { TimerStatus, SessionSetting, InitialState } from "@/lib/timer/type"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
@@ -47,30 +48,12 @@ export const PomodoroTimer = ({
   initialState,
   className
 }: PomodoroTimerProps) => {
-  const [sessionsDuration] = useState(() => {
-    return {
-      focus: focusMin * 60 * 1000,
-      shortBreak: shortBreakMin * 60 * 1000,
-      longBreak: longBreakMin * 60 * 1000
-    }
-  })
+  const [sessionsDuration] = useState(() =>
+    getSessionsDuration(focusMin, shortBreakMin, longBreakMin)
+  )
 
   /* Sessions */
-  const [sessions] = useState(() => {
-    const sessions: SessionType[] = []
-
-    for (let i = 0; i < cyclesBeforeLongBreak; i++) {
-      sessions.push("focus")
-
-      if (i < cyclesBeforeLongBreak - 1) {
-        sessions.push("shortBreak")
-      }
-    }
-
-    sessions.push("longBreak")
-
-    return sessions
-  })
+  const [sessions] = useState(() => buildSessions(cyclesBeforeLongBreak))
 
   const [currentSessionIdx, setCurrentSessionIdx] = useState(
     initialState ? initialState.sessionIdx : 0
@@ -81,7 +64,12 @@ export const PomodoroTimer = ({
     if (initialState) {
       const currentSession = sessions[currentSessionIdx]
 
-      return Timer.fromSnapshot(sessionsDuration[currentSession], initialState.timerState)
+      const restoredTimer = Timer.fromSnapshot(
+        sessionsDuration[currentSession],
+        initialState.timerState
+      )
+
+      return restoredTimer || Timer.create(sessionsDuration[currentSession])
     }
 
     return Timer.create(sessionsDuration[sessions[0]])
