@@ -1,9 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { loadActiveTimer, clearActiveTimer } from "@/lib/db/active-timer"
 import { buildSessions } from "@/lib/timer/session"
 import type { InitialState, SessionSetting } from "@/lib/timer/type"
-import { db } from "@/lib/db"
 import { PomodoroTimer } from "./pomodoro-timer"
 
 export const PomodoroTimerClient = ({
@@ -16,30 +16,24 @@ export const PomodoroTimerClient = ({
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    const loadActiveTimer = async () => {
-      try {
-        const record = await db.activeTimer.get("singleton")
+    const restoreActiveTimer = async () => {
+      const record = await loadActiveTimer()
 
-        if (!record) return
-
+      if (record) {
         const sessionsLength = buildSessions(cyclesBeforeLongBreak).length
         const isSessionIdxInCycle = record.sessionIdx >= 0 && record.sessionIdx < sessionsLength
 
-        if (!isSessionIdxInCycle) {
-          await db.activeTimer.delete("singleton")
-
-          return
+        if (isSessionIdxInCycle) {
+          setInitialState({ sessionIdx: record.sessionIdx, timerState: record.timerState })
+        } else {
+          await clearActiveTimer()
         }
-
-        setInitialState({ sessionIdx: record.sessionIdx, timerState: record.timerState })
-      } catch (error) {
-        console.error("Failed to restore the active timer:", error)
-      } finally {
-        setLoaded(true)
       }
+
+      setLoaded(true)
     }
 
-    loadActiveTimer()
+    restoreActiveTimer()
   }, [cyclesBeforeLongBreak])
 
   if (!loaded) return null

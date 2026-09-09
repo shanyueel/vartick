@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
+import { saveActiveTimer } from "@/lib/db/active-timer"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
 import type { TimerStatus, SessionSetting, InitialState } from "@/lib/timer/type"
@@ -86,46 +87,59 @@ export const PomodoroTimer = ({
   const isCycleEnded = isLastSession && (status === "ended" || status === "finished")
 
   /* Operations for Timer and Session Management */
-  const updateTimerView = useCallback(() => {
+  const updateTimerView = useCallback(async () => {
     const latestStatus = timer.getCurrent().status
 
     if (latestStatus === "finished") {
       timer.end()
+      await saveActiveTimer({
+        sessionIdx: currentSessionIdx,
+        timerState: timer.snapshot()
+      })
     }
 
     setTimerView(timer.getCurrent())
-  }, [timer])
+  }, [timer, currentSessionIdx])
 
-  const endCurrentSession = () => {
+  const endCurrentSession = async () => {
     const latestStatus = timer.getCurrent().status
-    if (latestStatus !== "ended") {
-      timer.end()
-    }
+
+    if (latestStatus === "ended") return
+
+    timer.end()
+
+    await saveActiveTimer({
+      sessionIdx: currentSessionIdx,
+      timerState: timer.snapshot()
+    })
   }
 
-  const moveToSession = (sessionIdx: number) => {
+  const moveToSession = async (sessionIdx: number) => {
     if (sessionIdx < 0 || sessionIdx >= sessions.length) return
 
-    endCurrentSession()
+    await endCurrentSession()
 
     const session = sessions[sessionIdx]
 
     setCurrentSessionIdx(sessionIdx)
     timer.reset(sessionsDuration[session])
+
+    await saveActiveTimer({
+      sessionIdx,
+      timerState: timer.snapshot()
+    })
   }
 
-  const nextSession = () => {
+  const nextSession = async () => {
     const nextSessionIdx = currentSessionIdx + 1
 
-    if (nextSessionIdx >= sessions.length) {
-      endCurrentSession()
-    }
+    if (nextSessionIdx >= sessions.length) return
 
-    moveToSession(nextSessionIdx)
+    await moveToSession(nextSessionIdx)
   }
 
-  const restartSession = () => {
-    moveToSession(0)
+  const restartSession = async () => {
+    await moveToSession(0)
   }
 
   /* Subtitle */
@@ -136,7 +150,9 @@ export const PomodoroTimer = ({
   useEffect(() => {
     if (status !== "running") return
 
-    const intervalId = setInterval(updateTimerView, REFRESH_PERIOD_MS)
+    const intervalId = setInterval(async () => {
+      await updateTimerView()
+    }, REFRESH_PERIOD_MS)
 
     return () => clearInterval(intervalId)
   }, [status, updateTimerView])
@@ -157,12 +173,15 @@ export const PomodoroTimer = ({
       <SessionTracker sessions={sessions} currentSessionIdx={currentSessionIdx} />
       <div className="w-full px-8">
         <TimerControls
+          currentSessionIdx={currentSessionIdx}
           timer={timer}
           status={status}
           updateTimerView={updateTimerView}
+          endCurrentSession={endCurrentSession}
           nextSession={nextSession}
           restartSession={restartSession}
           isFocusSession={isFocusSession}
+          isLastSession={isLastSession}
           isCycleNotStarted={isCycleNotStarted}
           isCycleEnded={isCycleEnded}
         />
