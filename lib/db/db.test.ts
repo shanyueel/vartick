@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from "vitest"
 import "fake-indexeddb/auto"
-import { db, type Session } from "."
+import { db } from "@/lib/db"
+import type { Session } from "@/lib/db/type"
 import type { TimerState } from "@/lib/timer/type"
 
 const clearDb = async () => {
