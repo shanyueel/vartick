@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
-import { saveActiveTimer } from "@/lib/db/active-timer"
+import { useLiveQuery } from "dexie-react-hooks"
+import { queryActiveTimer, saveActiveTimer } from "@/lib/db/active-timer"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
 import type { TimerStatus, SessionSetting, InitialState } from "@/lib/timer/type"
@@ -41,6 +42,14 @@ const getSubtitle = (status: TimerStatus, isFocusSession: boolean, isLastSession
   }
 }
 
+const identifyTimer = ({ sessionIdx, timerState }: InitialState) => {
+  const startedAt = "startedAt" in timerState ? timerState.startedAt : undefined
+  const endsAt = "endsAt" in timerState ? timerState.endsAt : undefined
+  const remainingMs = "remainingMs" in timerState ? timerState.remainingMs : undefined
+
+  return `${sessionIdx}:${timerState.status}:${startedAt}:${endsAt}:${remainingMs}`
+}
+
 export const PomodoroTimer = ({
   focusMin,
   shortBreakMin,
@@ -61,7 +70,7 @@ export const PomodoroTimer = ({
   )
 
   /* Timer */
-  const [timer] = useState(() => {
+  const [timer, setTimer] = useState(() => {
     if (initialState) {
       const currentSession = sessions[currentSessionIdx]
 
@@ -157,7 +166,35 @@ export const PomodoroTimer = ({
     return () => clearInterval(intervalId)
   }, [status, updateTimerView])
 
-  // Refresh the timer when a hidden tab becomes visible so the countdown reflects elapsed time.
+  /* Synchronize with timer state persisted by other tabs. */
+  const storedActiveTimer = useLiveQuery(queryActiveTimer) // Shared timer state persisted in IndexedDB across tabs
+  const [lastSeenStoredId, setLastSeenStoredId] = useState<string | null>(null) // Tracks the last seen stored timer, even if it's invalid.
+
+  const storedId = storedActiveTimer ? identifyTimer(storedActiveTimer) : null
+  const localId = identifyTimer({ sessionIdx: currentSessionIdx, timerState: timer.snapshot() })
+
+  const isStoredTimerUnprocessed = storedId !== lastSeenStoredId
+  const hasStoredTimer = storedActiveTimer && storedId
+  const isStoredTimerOutOfSync = storedId !== localId
+
+  if (isStoredTimerUnprocessed) {
+    // Update the last seen stored timer so we don't process it again.
+    setLastSeenStoredId(storedId)
+
+    if (hasStoredTimer && isStoredTimerOutOfSync) {
+      const { sessionIdx, timerState } = storedActiveTimer
+      const session = sessions[sessionIdx]
+      const restoredTimer = session && Timer.fromSnapshot(sessionsDuration[session], timerState)
+
+      if (restoredTimer) {
+        setCurrentSessionIdx(sessionIdx)
+        setTimer(restoredTimer)
+        setTimerView(restoredTimer.getCurrent())
+      }
+    }
+  }
+
+  /* Refresh the timer when a hidden tab becomes visible so the countdown reflects elapsed time. */
   useEffect(() => {
     if (status !== "running") return
 

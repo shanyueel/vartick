@@ -2,10 +2,12 @@ import { db } from "@/lib/db"
 import type { ActiveTimer } from "@/lib/db/type"
 import type { InitialState } from "@/lib/timer/type"
 
+// Separate query for useLiveQuery subscriptions.
+export const queryActiveTimer = () => db.activeTimer.get("singleton")
+
 export const loadActiveTimer = async (): Promise<ActiveTimer | undefined> => {
   try {
-    const activeTimer = await db.activeTimer.get("singleton")
-    return activeTimer || undefined
+    return await queryActiveTimer()
   } catch (error) {
     console.error("Error loading active timer:", error)
     return undefined
