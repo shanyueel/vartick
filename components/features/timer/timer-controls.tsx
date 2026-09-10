@@ -78,12 +78,10 @@ export const TimerControls = ({
   const handleNext = async () => {
     if (isLastSession) {
       await endCurrentSession()
-      await updateTimerView()
-
-      return
+    } else {
+      await nextSession()
     }
 
-    await nextSession()
     await updateTimerView()
   }
 
