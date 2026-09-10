@@ -1,5 +1,5 @@
-import { isRemainder, isTimestamp } from "@/lib/utils/time"
-import type { TimerState, TimerCurrent } from "@/lib/timer/type"
+import { isTimestamp, isRemainder, isValidPausedRemainder } from "@/lib/utils/time"
+import type { TimerState, TimerCurrent, TimerRecord } from "@/lib/timer/type"
 
 const ALLOWED_KEYS: Record<TimerState["status"], readonly string[]> = {
   pending: ["status"],
@@ -62,8 +62,14 @@ export class Timer {
       return
     }
 
-    // remainingMs: "paused" and "ended" have a remainingMs, which must be between 0 and the duration.
-    if (!isRemainder(remainingMs, durationMs)) {
+    // remainingMs: paused requires a positive integer (<= the duration); ended must be between 0 and the duration.
+    if (status === "paused" && !isValidPausedRemainder(remainingMs as number, durationMs)) {
+      throw new Error(
+        `Invalid '${status}' timer snapshot, remainingMs must be a positive integer no greater than the duration`
+      )
+    }
+
+    if (status === "ended" && !isRemainder(remainingMs, durationMs)) {
       throw new Error(
         `Invalid '${status}' timer snapshot, remainingMs must be between 0 and the duration`
       )
@@ -207,42 +213,50 @@ export class Timer {
     }
   }
 
-  end() {
-    if (this.state.status === "ended") {
+  end(): TimerRecord {
+    const currentState = this.state
+    if (currentState.status === "ended") {
       throw new Error("Timer can't be ended since it has already ended")
     }
 
-    if (this.state.status === "pending") {
+    const now = Date.now()
+
+    if (currentState.status === "pending") {
       this.state = {
         status: "ended",
         remainingMs: this.durationMs
       }
 
       return {
-        startedAt: undefined,
-        endedAt: undefined,
-        remainingMs: this.durationMs,
-        durationMs: this.durationMs
+        status: "skipped",
+        startedAt: now,
+        endedAt: now,
+        plannedDurationMs: this.durationMs,
+        actualDurationMs: 0
       }
     }
 
-    // status: "running", "finished", or "paused"
-    const now = Date.now()
     const remainingMs =
-      this.state.status === "paused" ? this.state.remainingMs : Math.max(0, this.state.endsAt - now)
-    const { startedAt } = this.state
+      currentState.status === "paused"
+        ? currentState.remainingMs
+        : Math.max(0, currentState.endsAt - now)
+
+    const isCompleted = currentState.status === "running" && remainingMs === 0
+    const partial: Pick<TimerRecord, "status" | "endedAt"> = isCompleted
+      ? { status: "completed", endedAt: currentState.endsAt } // "finished" = "running" with remainingMs <= 0
+      : { status: "abandoned", endedAt: now } // "running" or "paused" with remainingMs > 0
 
     this.state = {
       status: "ended",
-      startedAt,
+      startedAt: currentState.startedAt,
       remainingMs
     }
 
     return {
-      startedAt,
-      endedAt: now,
-      remainingMs,
-      durationMs: this.durationMs
+      ...partial,
+      startedAt: currentState.startedAt,
+      plannedDurationMs: this.durationMs,
+      actualDurationMs: this.durationMs - remainingMs
     }
   }
 

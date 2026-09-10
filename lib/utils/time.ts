@@ -39,3 +39,7 @@ export const isRemainder = (value: unknown, durationMs: number) => {
 
   return isInteger && isNonNegative && isWithinDuration
 }
+
+export const isValidPausedRemainder = (value: unknown, durationMs: number): value is number => {
+  return isRemainder(value, durationMs) && (value as number) > 0
+}

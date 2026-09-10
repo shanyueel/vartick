@@ -12,6 +12,14 @@ export type TimerCurrent = {
   remainingMs: number
 }
 
+export type TimerRecord = {
+  status: SessionStatus
+  startedAt: number
+  endedAt: number
+  plannedDurationMs: number
+  actualDurationMs: number
+}
+
 /* Session */
 export type SessionType = "focus" | "shortBreak" | "longBreak"
 

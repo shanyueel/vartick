@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest"
-import { formatDuration, convertMsToSec, isTimestamp, isRemainder } from "./time"
+import {
+  formatDuration,
+  convertMsToSec,
+  isTimestamp,
+  isRemainder,
+  isValidPausedRemainder
+} from "./time"
 
 describe("formatDuration", () => {
   test("throws error if the input is invalid", () => {
@@ -60,5 +66,23 @@ describe("isRemainder", () => {
     expect(isRemainder("50", 100)).toBe(false)
     expect(isRemainder(null, 100)).toBe(false)
     expect(isRemainder(undefined, 100)).toBe(false)
+  })
+})
+
+describe("isValidPausedRemainder", () => {
+  test("returns true for positive integers between 0 and the duration", () => {
+    expect(isValidPausedRemainder(1, 100)).toBe(true)
+    expect(isValidPausedRemainder(50, 100)).toBe(true)
+    expect(isValidPausedRemainder(99, 100)).toBe(true)
+  })
+
+  test("returns false for non-integers or values outside the range", () => {
+    expect(isValidPausedRemainder(0, 100)).toBe(false)
+    expect(isValidPausedRemainder(-1, 100)).toBe(false)
+    expect(isValidPausedRemainder(101, 100)).toBe(false)
+    expect(isValidPausedRemainder(1.5, 100)).toBe(false)
+    expect(isValidPausedRemainder("50", 100)).toBe(false)
+    expect(isValidPausedRemainder(null, 100)).toBe(false)
+    expect(isValidPausedRemainder(undefined, 100)).toBe(false)
   })
 })

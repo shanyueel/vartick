@@ -59,17 +59,26 @@ const invalidSnapshots: { name: string; snapshot: unknown; message: string }[] =
   {
     name: "paused with a negative remainder",
     snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: -1 },
-    message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
+    message:
+      "Invalid 'paused' timer snapshot, remainingMs must be a positive integer no greater than the duration"
   },
   {
     name: "paused with a remainder longer than the duration",
     snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 10001 },
-    message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
+    message:
+      "Invalid 'paused' timer snapshot, remainingMs must be a positive integer no greater than the duration"
   },
   {
     name: "paused with a fractional remainder",
     snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 7000.5 },
-    message: "Invalid 'paused' timer snapshot, remainingMs must be between 0 and the duration"
+    message:
+      "Invalid 'paused' timer snapshot, remainingMs must be a positive integer no greater than the duration"
+  },
+  {
+    name: "paused with a 0 remainder",
+    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 0 },
+    message:
+      "Invalid 'paused' timer snapshot, remainingMs must be a positive integer no greater than the duration"
   },
   {
     name: "ended missing remainingMs entirely",
@@ -93,11 +102,6 @@ const validSnapshots: { name: string; snapshot: TimerState; expected: TimerCurre
     name: "paused - timer paused during the countdown",
     snapshot: { status: "paused", startedAt: BASE_TIME - 3000, remainingMs: 7000 },
     expected: { status: "paused", remainingMs: 7000 }
-  },
-  {
-    name: "paused - timer paused when the countdown reached zero",
-    snapshot: { status: "paused", startedAt: BASE_TIME, remainingMs: 0 },
-    expected: { status: "paused", remainingMs: 0 }
   },
   {
     name: "paused - timer paused at the exact moment it was started",
@@ -646,10 +650,11 @@ describe("Timer Tests", () => {
         name: "pending",
         arrange: (_timer: Timer) => {},
         expected: {
-          startedAt: undefined,
-          endedAt: undefined,
-          remainingMs: 10000,
-          durationMs: 10000
+          status: "skipped",
+          startedAt: BASE_TIME,
+          endedAt: BASE_TIME,
+          plannedDurationMs: 10000,
+          actualDurationMs: 0
         }
       },
       {
@@ -659,10 +664,11 @@ describe("Timer Tests", () => {
           vi.advanceTimersByTime(3000)
         },
         expected: {
+          status: "abandoned",
           startedAt: BASE_TIME,
           endedAt: BASE_TIME + 3000,
-          remainingMs: 7000,
-          durationMs: 10000
+          plannedDurationMs: 10000,
+          actualDurationMs: 3000
         }
       },
       {
@@ -674,26 +680,28 @@ describe("Timer Tests", () => {
           vi.advanceTimersByTime(2000)
         },
         expected: {
+          status: "abandoned",
           startedAt: BASE_TIME,
           endedAt: BASE_TIME + 5000,
-          remainingMs: 7000,
-          durationMs: 10000
+          plannedDurationMs: 10000,
+          actualDurationMs: 3000
         }
       },
       {
         name: "finished",
         arrange: (timer: Timer) => {
           timer.start()
-          vi.advanceTimersByTime(10000)
+          vi.advanceTimersByTime(15000)
         },
         expected: {
+          status: "completed",
           startedAt: BASE_TIME,
           endedAt: BASE_TIME + 10000,
-          remainingMs: 0,
-          durationMs: 10000
+          plannedDurationMs: 10000,
+          actualDurationMs: 10000
         }
       }
-    ])("returns the final snapshot of the timer ($name)", ({ arrange, expected }) => {
+    ])("returns the record of the timer ($name)", ({ arrange, expected }) => {
       const timer = Timer.create(10000)
 
       arrange(timer)
