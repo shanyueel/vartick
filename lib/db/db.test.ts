@@ -264,7 +264,7 @@ describe("IndexedDB Tests", () => {
       const durationSec = 25 * 60
 
       await db.sessions.add({
-        id: "1",
+        id: 1,
         type: "focus",
         startedAt: startTime,
         endedAt: startTime + durationSec * 1000,
@@ -273,7 +273,7 @@ describe("IndexedDB Tests", () => {
         status: "abandoned"
       })
 
-      const session = await db.sessions.get("1")
+      const session = await db.sessions.get(1)
 
       expect(session).toBeDefined()
       expect(session?.type).toBe("focus")
@@ -287,7 +287,7 @@ describe("IndexedDB Tests", () => {
     test("query sessions by type and status", async () => {
       const dummyData: Session[] = [
         {
-          id: "1",
+          id: 1,
           type: "focus",
           startedAt: new Date("2026-01-01T12:00:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:30:00Z").getTime(),
@@ -296,7 +296,7 @@ describe("IndexedDB Tests", () => {
           status: "completed"
         },
         {
-          id: "2",
+          id: 2,
           type: "shortBreak",
           startedAt: new Date("2026-01-01T12:35:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:35:00Z").getTime(),
@@ -305,7 +305,7 @@ describe("IndexedDB Tests", () => {
           status: "skipped"
         },
         {
-          id: "3",
+          id: 3,
           type: "focus",
           startedAt: new Date("2026-01-01T12:35:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:50:00Z").getTime(),
@@ -314,7 +314,7 @@ describe("IndexedDB Tests", () => {
           status: "abandoned"
         },
         {
-          id: "4",
+          id: 4,
           type: "longBreak",
           startedAt: new Date("2026-01-01T12:50:00Z").getTime(),
           endedAt: new Date("2026-01-01T13:05:00Z").getTime(),

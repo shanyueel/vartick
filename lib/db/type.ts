@@ -1,8 +1,8 @@
-import { InitialState, SessionSetting, SessionStatus, SessionType } from "@/lib/timer/type"
+import { InitialState, SessionSetting, SessionType, TimerRecord } from "@/lib/timer/type"
 
 /*
-  The one currently-running timer, if any. Singleton row, deleted once the
-  timer concludes and its result is written to `sessions`.
+ * The singleton active timer, overwritten on every change and deleted only when stale.
+ * Each timer cycle is written to `sessions` when it ends (skipped, abandoned, or completed).
  */
 export interface ActiveTimer extends InitialState {
   id: "singleton"
@@ -14,14 +14,9 @@ export interface ActiveTimer extends InitialState {
   - plannedDurationMs is the duration the timer was set to run for
   - actualDurationMs is how long it actually ran before being completed, abandoned, or skipped.
 */
-export interface Session {
-  id: string
+export interface Session extends TimerRecord {
+  id: number
   type: SessionType
-  startedAt: number // epoch ms — when the timer started, or when the session was skipped
-  endedAt: number // epoch ms — when the timer stopped, or when the session was skipped
-  plannedDurationMs: number
-  actualDurationMs: number
-  status: SessionStatus
 }
 
 export interface Settings extends SessionSetting {

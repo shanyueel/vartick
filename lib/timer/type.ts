@@ -14,8 +14,8 @@ export type TimerCurrent = {
 
 export type TimerRecord = {
   status: SessionStatus
-  startedAt: number
-  endedAt: number
+  startedAt: number // epoch ms — when the timer started, or when the session was skipped
+  endedAt: number // epoch ms — when the timer stopped, or when the session was skipped
   plannedDurationMs: number
   actualDurationMs: number
 }

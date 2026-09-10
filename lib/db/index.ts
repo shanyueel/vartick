@@ -8,7 +8,7 @@ const db = new Dexie("vartick") as Dexie & {
 }
 
 db.version(1).stores({
-  sessions: "id, type, status, startedAt",
+  sessions: "++id, type, status, startedAt, endedAt",
   activeTimer: "id",
   settings: "id"
 })

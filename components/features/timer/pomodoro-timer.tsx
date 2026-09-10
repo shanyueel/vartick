@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
 import { useLiveQuery } from "dexie-react-hooks"
 import { queryActiveTimer, saveActiveTimer } from "@/lib/db/active-timer"
+import { concludeSession } from "@/lib/db/sessions"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
 import type { TimerStatus, SessionSetting, InitialState } from "@/lib/timer/type"
@@ -100,27 +101,28 @@ export const PomodoroTimer = ({
     const latestStatus = timer.getCurrent().status
 
     if (latestStatus === "finished") {
-      timer.end()
-      await saveActiveTimer({
-        sessionIdx: currentSessionIdx,
-        timerState: timer.snapshot()
-      })
+      const record = timer.end()
+
+      await concludeSession(
+        { sessionIdx: currentSessionIdx, timerState: timer.snapshot() },
+        { type: sessions[currentSessionIdx], ...record }
+      )
     }
 
     setTimerView(timer.getCurrent())
-  }, [timer, currentSessionIdx])
+  }, [sessions, currentSessionIdx, timer])
 
   const endCurrentSession = async () => {
     const latestStatus = timer.getCurrent().status
 
     if (latestStatus === "ended") return
 
-    timer.end()
+    const record = timer.end()
 
-    await saveActiveTimer({
-      sessionIdx: currentSessionIdx,
-      timerState: timer.snapshot()
-    })
+    await concludeSession(
+      { sessionIdx: currentSessionIdx, timerState: timer.snapshot() },
+      { type: sessions[currentSessionIdx], ...record }
+    )
   }
 
   const moveToSession = async (sessionIdx: number) => {
