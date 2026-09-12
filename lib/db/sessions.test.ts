@@ -45,7 +45,7 @@ describe("concludeSession()", () => {
     const logError = vi.spyOn(console, "error").mockImplementation(() => {})
 
     await expect(
-      concludeSession({ sessionIdx: 0, timerState: endedState }, completedSession)
+      concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
     ).resolves.toBeUndefined()
 
     const activeTimer = await db.activeTimer.get("singleton")
@@ -61,7 +61,7 @@ describe("concludeSession()", () => {
     const logError = vi.spyOn(console, "error").mockImplementation(() => {})
 
     await expect(
-      concludeSession({ sessionIdx: 0, timerState: endedState }, completedSession)
+      concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
     ).resolves.toBeUndefined()
 
     const activeTimer = await db.activeTimer.get("singleton")
@@ -72,13 +72,13 @@ describe("concludeSession()", () => {
     expect(logError).toHaveBeenCalled()
 
     await expect(
-      concludeSession({ sessionIdx: 0, timerState: endedState }, completedSession)
+      concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
     ).resolves.toBeUndefined()
   })
 
   test("ends the active timer and records the session together", async () => {
     await expect(
-      concludeSession({ sessionIdx: 0, timerState: endedState }, completedSession)
+      concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
     ).resolves.toBeUndefined()
 
     const activeTimer = await db.activeTimer.get("singleton")
@@ -89,5 +89,30 @@ describe("concludeSession()", () => {
     expect(sessions).toHaveLength(1)
     expect(sessions[0]).toMatchObject(completedSession)
     expect(sessions[0].id).toEqual(expect.any(Number)) // auto-incremented ID
+  })
+
+  test("records a session once when more than one tab concludes it", async () => {
+    await concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
+    await concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
+
+    expect(await db.sessions.count()).toBe(1)
+  })
+
+  test("records the next run of the same session index as a new session", async () => {
+    await concludeSession({ sessionIdx: 0, timerState: endedState }, { ...completedSession })
+
+    const laterStart = BASE_TIME + 60 * 60 * 1000
+    await db.activeTimer.put({
+      id: "singleton",
+      sessionIdx: 0,
+      timerState: { status: "running", startedAt: laterStart, endsAt: laterStart + DURATION_MS }
+    })
+
+    await concludeSession(
+      { sessionIdx: 0, timerState: { status: "ended", startedAt: laterStart, remainingMs: 0 } },
+      { ...completedSession, startedAt: laterStart, endedAt: laterStart + DURATION_MS }
+    )
+
+    expect(await db.sessions.count()).toBe(2)
   })
 })
