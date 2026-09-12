@@ -32,7 +32,7 @@ export interface SessionSetting {
   cyclesBeforeLongBreak: number
 }
 
-export interface InitialState {
+export interface PomodoroTimerState {
   sessionIdx: number // index of the session in the current cycle (0-based)
   timerState: TimerState
 }

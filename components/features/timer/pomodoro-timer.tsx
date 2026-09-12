@@ -7,13 +7,13 @@ import { queryActiveTimer, saveActiveTimer } from "@/lib/db/active-timer"
 import { concludeSession } from "@/lib/db/sessions"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
-import type { TimerStatus, SessionSetting, InitialState } from "@/lib/timer/type"
+import type { TimerStatus, SessionSetting, PomodoroTimerState } from "@/lib/timer/type"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
 
 interface PomodoroTimerProps extends SessionSetting {
-  initialState?: InitialState
+  initialState?: PomodoroTimerState
   className?: string
 }
 
@@ -43,7 +43,7 @@ const getSubtitle = (status: TimerStatus, isFocusSession: boolean, isLastSession
   }
 }
 
-const identifyTimer = ({ sessionIdx, timerState }: InitialState) => {
+const identifyPomodoroTimer = ({ sessionIdx, timerState }: PomodoroTimerState) => {
   const startedAt = "startedAt" in timerState ? timerState.startedAt : undefined
   const endsAt = "endsAt" in timerState ? timerState.endsAt : undefined
   const remainingMs = "remainingMs" in timerState ? timerState.remainingMs : undefined
@@ -172,8 +172,11 @@ export const PomodoroTimer = ({
   const storedActiveTimer = useLiveQuery(queryActiveTimer) // Shared timer state persisted in IndexedDB across tabs
   const [lastSeenStoredId, setLastSeenStoredId] = useState<string | null>(null) // Tracks the last seen stored timer, even if it's invalid.
 
-  const storedId = storedActiveTimer ? identifyTimer(storedActiveTimer) : null
-  const localId = identifyTimer({ sessionIdx: currentSessionIdx, timerState: timer.snapshot() })
+  const storedId = storedActiveTimer ? identifyPomodoroTimer(storedActiveTimer) : null
+  const localId = identifyPomodoroTimer({
+    sessionIdx: currentSessionIdx,
+    timerState: timer.snapshot()
+  })
 
   const isStoredTimerUnprocessed = storedId !== lastSeenStoredId
   const hasStoredTimer = storedActiveTimer && storedId

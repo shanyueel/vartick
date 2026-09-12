@@ -1,10 +1,10 @@
-import { InitialState, SessionSetting, SessionType, TimerRecord } from "@/lib/timer/type"
+import { PomodoroTimerState, SessionSetting, SessionType, TimerRecord } from "@/lib/timer/type"
 
 /*
  * The singleton active timer, overwritten on every change and deleted only when stale.
  * Each timer cycle is written to `sessions` when it ends (skipped, abandoned, or completed).
  */
-export interface ActiveTimer extends InitialState {
+export interface ActiveTimer extends PomodoroTimerState {
   id: "singleton"
 }
 

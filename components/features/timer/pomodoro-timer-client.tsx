@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { loadActiveTimer, clearActiveTimer } from "@/lib/db/active-timer"
 import { buildSessions } from "@/lib/timer/session"
-import type { InitialState, SessionSetting } from "@/lib/timer/type"
+import type { PomodoroTimerState, SessionSetting } from "@/lib/timer/type"
 import { PomodoroTimer } from "./pomodoro-timer"
 
 export const PomodoroTimerClient = ({
@@ -12,7 +12,7 @@ export const PomodoroTimerClient = ({
   longBreakMin,
   cyclesBeforeLongBreak
 }: SessionSetting) => {
-  const [initialState, setInitialState] = useState<InitialState | undefined>(undefined)
+  const [initialState, setInitialState] = useState<PomodoroTimerState | undefined>(undefined)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {

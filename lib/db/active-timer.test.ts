@@ -7,17 +7,17 @@ import {
   saveActiveTimer,
   clearActiveTimer
 } from "./active-timer"
-import type { InitialState } from "@/lib/timer/type"
+import type { PomodoroTimerState } from "@/lib/timer/type"
 
 const BASE_TIME = new Date("2026-01-01T12:00:00Z").getTime()
 const DURATION_MS = 25 * 60 * 1000
 
-const running: InitialState = {
+const running: PomodoroTimerState = {
   sessionIdx: 0,
   timerState: { status: "running", startedAt: BASE_TIME, endsAt: BASE_TIME + DURATION_MS }
 }
 
-const paused: InitialState = {
+const paused: PomodoroTimerState = {
   sessionIdx: 2,
   timerState: { status: "paused", startedAt: BASE_TIME, remainingMs: 7000 }
 }

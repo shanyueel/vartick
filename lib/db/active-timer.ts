@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import type { ActiveTimer } from "@/lib/db/type"
-import type { InitialState } from "@/lib/timer/type"
+import type { PomodoroTimerState } from "@/lib/timer/type"
 
 // Separate query for useLiveQuery subscriptions.
 export const queryActiveTimer = () => db.activeTimer.get("singleton")
@@ -14,7 +14,7 @@ export const loadActiveTimer = async (): Promise<ActiveTimer | undefined> => {
   }
 }
 
-export const saveActiveTimer = async (activeTimer: InitialState) => {
+export const saveActiveTimer = async (activeTimer: PomodoroTimerState) => {
   try {
     await db.activeTimer.put({ ...activeTimer, id: "singleton" })
   } catch (error) {
