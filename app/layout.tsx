@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { Sidebar } from "@/components/features/sidebar"
 
 export const metadata: Metadata = {
   title: "VarTick",
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="dark h-full antialiased bg-gray-975">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex flex-col items-center h-full min-h-full font-sans md:flex-row md:items-start">
+        <main className="relative flex-1 w-full h-full px-4 py-8 overflow-auto">{children}</main>
+        <Sidebar className="border-t md:-order-1 md:border-t-0 md:border-r" />
+      </body>
     </html>
   )
 }
