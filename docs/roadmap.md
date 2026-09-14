@@ -23,7 +23,7 @@ Each phase is a **gate**. Do not begin the next phase until the current phase's 
 - Three session types: focus (25m), short break (5m), long break (15m); long break after every 4 focus sessions
 - Durations configurable in settings
 - Every session persisted to IndexedDB on completion _and_ on abandonment
-- Timer survives page refresh and tab backgrounding (timestamp-based, not tick-counting — see ADR-3)
+- Timer survives tab backgrounding (timestamp-based, not tick-counting — see ADR-3). Reloading or closing the tab starts a new cycle: Phase 1 is a timer only, so an unfinished session is not resumed
 - Browser notification + sound on session end
 - Settings screen (durations, sound on/off, notifications permission)
 - PWA manifest, service worker, installable
@@ -32,8 +32,8 @@ Each phase is a **gate**. Do not begin the next phase until the current phase's 
 **Acceptance criteria**
 
 - [x] Starting a 25-minute focus session, backgrounding the tab for 25 minutes, and returning shows the session correctly completed — not 25 minutes remaining
-- [x] Refreshing mid-session restores the correct remaining time
-- [ ] Abandoning a session writes a row with `status: 'abandoned'` and the actual elapsed duration
+- [x] Reloading or reopening the page starts a new cycle, and a session left unfinished is discarded rather than recorded
+- [x] Abandoning a session writes a row with `status: 'abandoned'` and the actual elapsed duration
 - [ ] Lighthouse PWA audit passes; app installs to home screen on both desktop and Android
 - [x] Timer state machine has 100% branch coverage in Vitest, written test-first
 - [ ] Deployed and reachable at a public URL

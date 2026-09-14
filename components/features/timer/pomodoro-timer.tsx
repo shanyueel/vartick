@@ -2,18 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
-import { useLiveQuery } from "dexie-react-hooks"
-import { queryActiveTimer, saveActiveTimer } from "@/lib/db/active-timer"
+import { saveActiveTimer } from "@/lib/db/active-timer"
 import { concludeSession } from "@/lib/db/sessions"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
-import type { TimerStatus, SessionSetting, PomodoroTimerState } from "@/lib/timer/type"
+import type { TimerStatus, SessionSetting } from "@/lib/timer/type"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
 
 interface PomodoroTimerProps extends SessionSetting {
-  initialState?: PomodoroTimerState
   className?: string
 }
 
@@ -43,20 +41,11 @@ const getSubtitle = (status: TimerStatus, isFocusSession: boolean, isLastSession
   }
 }
 
-const identifyPomodoroTimer = ({ sessionIdx, timerState }: PomodoroTimerState) => {
-  const startedAt = "startedAt" in timerState ? timerState.startedAt : undefined
-  const endsAt = "endsAt" in timerState ? timerState.endsAt : undefined
-  const remainingMs = "remainingMs" in timerState ? timerState.remainingMs : undefined
-
-  return `${sessionIdx}:${timerState.status}:${startedAt}:${endsAt}:${remainingMs}`
-}
-
 export const PomodoroTimer = ({
   focusMin,
   shortBreakMin,
   longBreakMin,
   cyclesBeforeLongBreak,
-  initialState,
   className
 }: PomodoroTimerProps) => {
   const [sessionsDuration] = useState(() =>
@@ -66,25 +55,15 @@ export const PomodoroTimer = ({
   /* Sessions */
   const [sessions] = useState(() => buildSessions(cyclesBeforeLongBreak))
 
-  const [currentSessionIdx, setCurrentSessionIdx] = useState(
-    initialState ? initialState.sessionIdx : 0
-  )
+  /*
+    Each tab runs its own timer from the start of a cycle. Phase 1 is a timer
+    and nothing more, so a reload or a closed tab starts over instead of
+    resuming, and tabs do not share or adopt each other's state.
+   */
+  const [currentSessionIdx, setCurrentSessionIdx] = useState(0)
 
   /* Timer */
-  const [timer, setTimer] = useState(() => {
-    if (initialState) {
-      const currentSession = sessions[currentSessionIdx]
-
-      const restoredTimer = Timer.fromSnapshot(
-        sessionsDuration[currentSession],
-        initialState.timerState
-      )
-
-      return restoredTimer || Timer.create(sessionsDuration[currentSession])
-    }
-
-    return Timer.create(sessionsDuration[sessions[0]])
-  })
+  const [timer] = useState(() => Timer.create(sessionsDuration[sessions[0]]))
 
   const [timerView, setTimerView] = useState(() => timer.getCurrent())
   const status = timerView.status
@@ -167,37 +146,6 @@ export const PomodoroTimer = ({
 
     return () => clearInterval(intervalId)
   }, [status, updateTimerView])
-
-  /* Synchronize with timer state persisted by other tabs. */
-  const storedActiveTimer = useLiveQuery(queryActiveTimer) // Shared timer state persisted in IndexedDB across tabs
-  const [lastSeenStoredId, setLastSeenStoredId] = useState<string | null>(null) // Tracks the last seen stored timer, even if it's invalid.
-
-  const storedId = storedActiveTimer ? identifyPomodoroTimer(storedActiveTimer) : null
-  const localId = identifyPomodoroTimer({
-    sessionIdx: currentSessionIdx,
-    timerState: timer.snapshot()
-  })
-
-  const isStoredTimerUnprocessed = storedId !== lastSeenStoredId
-  const hasStoredTimer = storedActiveTimer && storedId
-  const isStoredTimerOutOfSync = storedId !== localId
-
-  if (isStoredTimerUnprocessed) {
-    // Update the last seen stored timer so we don't process it again.
-    setLastSeenStoredId(storedId)
-
-    if (hasStoredTimer && isStoredTimerOutOfSync) {
-      const { sessionIdx, timerState } = storedActiveTimer
-      const session = sessions[sessionIdx]
-      const restoredTimer = session && Timer.fromSnapshot(sessionsDuration[session], timerState)
-
-      if (restoredTimer) {
-        setCurrentSessionIdx(sessionIdx)
-        setTimer(restoredTimer)
-        setTimerView(restoredTimer.getCurrent())
-      }
-    }
-  }
 
   /* Refresh the timer when a hidden tab becomes visible so the countdown reflects elapsed time. */
   useEffect(() => {
