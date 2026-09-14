@@ -53,7 +53,11 @@ The cost is that elapsed time must come from `actualDurationMs`, never `endedAt 
 
 ## Open Questions
 
-_None currently._ New questions go here as they arise; move each into Resolved Decisions above once answered, with the reasoning.
+New questions go here as they arise; move each into Resolved Decisions above once answered, with the reasoning.
+
+### Should tabs share one timer?
+
+Phase 1 runs each tab independently and starts a fresh cycle on reload, so two tabs can record overlapping sessions. Decide before the daily report trusts its totals. A single-tab design using Web Locks is parked in a local stash, `wip: single-tab timer ownership via Web Locks`.
 
 ---
 
