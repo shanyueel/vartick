@@ -1,6 +1,7 @@
 "use client"
 
 import { SettingRow } from "@/components/features/settings/setting-row"
+import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 
@@ -33,10 +34,12 @@ export default function SettingsPage() {
   return (
     <div>
       <h1 className="text-xl font-bold">Settings</h1>
-      <div className="flex flex-col gap-8 mt-4">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-sm text-muted-foreground">DURATIONS</h2>
-          <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 mt-4">
+        <FieldGroup>
+          <FieldSet className="gap-4">
+            <FieldLegend variant="label" className="mb-4 uppercase text-muted-foreground">
+              Durations
+            </FieldLegend>
             {durations.map((duration) => (
               <SettingRow key={duration.id} id={duration.id} label={duration.label}>
                 <div className="flex items-center gap-2">
@@ -53,19 +56,19 @@ export default function SettingsPage() {
                 </div>
               </SettingRow>
             ))}
-          </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <h2 className="text-sm text-muted-foreground">ALERTS</h2>
-          <div className="flex flex-col gap-4">
-            <SettingRow label="Sound on session end">
+          </FieldSet>
+          <FieldSet className="gap-4">
+            <FieldLegend variant="label" className="mb-4 uppercase text-muted-foreground">
+              Alerts
+            </FieldLegend>
+            <SettingRow id="sound-on-session-end" label="Sound on session end">
               <Switch id="sound-on-session-end" />
             </SettingRow>
-            <SettingRow label="Browser notification" subtitle="granted">
+            <SettingRow id="browser-notification" label="Browser notification" subtitle="granted">
               <Switch id="browser-notification" />
             </SettingRow>
-          </div>
-        </div>
+          </FieldSet>
+        </FieldGroup>
         <div className="w-full flex justify-between text-sm text-muted-foreground">
           <span>All data stays on this device</span>
           <span>v0.1</span>

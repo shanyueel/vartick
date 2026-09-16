@@ -1,5 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldError
+} from "@/components/ui/field"
 
 export const SettingRow = ({
   id,
@@ -14,14 +20,21 @@ export const SettingRow = ({
 }) => {
   return (
     <Card>
-      <CardContent className="flex justify-between items-center">
-        <div>
-          <Label className="text-base" htmlFor={id ? id : undefined}>
-            {label}
-          </Label>
-          {subtitle && <span className="text-xs text-muted-foreground">{subtitle}</span>}
-        </div>
-        {children}
+      <CardContent>
+        <Field orientation="horizontal" className="items-center!">
+          <FieldContent>
+            <FieldLabel className="text-base" htmlFor={id}>
+              {label}
+              {subtitle && (
+                <FieldDescription className="text-xs text-muted-foreground">
+                  {subtitle}
+                </FieldDescription>
+              )}
+            </FieldLabel>
+            <FieldError className="text-xs" />
+          </FieldContent>
+          {children}
+        </Field>
       </CardContent>
     </Card>
   )
