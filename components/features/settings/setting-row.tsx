@@ -1,11 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-  FieldError
-} from "@/components/ui/field"
+import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field"
 
 export const SettingRow = ({
   id,
@@ -31,7 +25,6 @@ export const SettingRow = ({
                 </FieldDescription>
               )}
             </FieldLabel>
-            <FieldError className="text-xs" />
           </FieldContent>
           {children}
         </Field>
