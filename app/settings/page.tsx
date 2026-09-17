@@ -1,11 +1,13 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSettingsSchema, loadSettings, saveSettings, DEFAULT_SETTINGS } from "@/lib/db/settings"
 import { SettingRow } from "@/components/features/settings/setting-row"
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { X } from "lucide-react"
 
 type DurationId = "focusMin" | "shortBreakMin" | "longBreakMin" | "cyclesBeforeLongBreak"
 type AlertId = "soundEnabled" | "notificationsEnabled"
@@ -112,7 +114,12 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold">Settings</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Settings</h1>
+        <Link href="/" className="md:hidden">
+          <X />
+        </Link>
+      </div>
       <div className="flex flex-col gap-4 mt-4">
         <FieldGroup>
           <FieldSet className="gap-4">
