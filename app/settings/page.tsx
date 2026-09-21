@@ -7,6 +7,7 @@ import { SettingRow } from "@/components/features/settings/setting-row"
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "@/components/ui/toast"
 import { X } from "lucide-react"
 
 type DurationId = "focusMin" | "shortBreakMin" | "longBreakMin" | "cyclesBeforeLongBreak"
@@ -101,15 +102,22 @@ export default function SettingsPage() {
     })
 
     if (!result.success) {
-      // todo: handle validation errors (result.error.issues) with a toast or something
+      toast.add({ type: "error", description: "Invalid input" })
       return
     }
 
-    // todo: handle success/failure feedback to user with a toast or something
-    await saveSettings(result.data)
+    const { success } = await saveSettings(result.data)
 
-    setForm(newForm)
-    setSavedForm(newForm)
+    if (!success) {
+      toast.add({ type: "error", title: "Couldn't Save Settings" })
+      setForm((current) => current && { ...current!, [field]: savedForm[field] })
+      return
+    }
+
+    toast.add({ type: "success", title: "Settings Saved", data: { showCloseButton: false } })
+
+    setForm((current) => current && { ...current!, [field]: value })
+    setSavedForm((current) => current && { ...current!, [field]: value })
   }
 
   return (
