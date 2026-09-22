@@ -4,14 +4,16 @@ import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
 import { saveActiveTimer } from "@/lib/db/active-timer"
 import { concludeSession } from "@/lib/db/sessions"
+import type { Settings } from "@/lib/db/type"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
-import type { TimerStatus, SessionSetting } from "@/lib/timer/type"
+import type { TimerStatus } from "@/lib/timer/type"
+import { playChime } from "@/lib/audio/chime"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
 
-interface PomodoroTimerProps extends SessionSetting {
+interface PomodoroTimerProps extends Omit<Settings, "id" | "notificationsEnabled"> {
   className?: string
 }
 
@@ -46,6 +48,7 @@ export const PomodoroTimer = ({
   shortBreakMin,
   longBreakMin,
   cyclesBeforeLongBreak,
+  soundEnabled,
   className
 }: PomodoroTimerProps) => {
   const [sessionsDuration] = useState(() =>
@@ -80,6 +83,16 @@ export const PomodoroTimer = ({
     const latestStatus = timer.getCurrent().status
 
     if (latestStatus === "finished") {
+      if (soundEnabled) {
+        if (isLastSession) {
+          playChime("cycleEnd")
+        } else if (isFocusSession) {
+          playChime("focusEnd")
+        } else {
+          playChime("breakEnd")
+        }
+      }
+
       const record = timer.end()
 
       await concludeSession(
@@ -89,7 +102,7 @@ export const PomodoroTimer = ({
     }
 
     setTimerView(timer.getCurrent())
-  }, [sessions, currentSessionIdx, timer])
+  }, [sessions, currentSessionIdx, timer, soundEnabled, isLastSession, isFocusSession])
 
   const endCurrentSession = async () => {
     const latestStatus = timer.getCurrent().status
