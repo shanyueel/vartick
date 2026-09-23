@@ -195,7 +195,7 @@ export const TimerControls = ({
             <DialogTitle>{abandonModalContent.title}</DialogTitle>
           </DialogHeader>
           <p>{abandonModalContent.message}</p>
-          <DialogFooter className="md:items-center">
+          <DialogFooter>
             <Button variant="ghost" onClick={handleCancelAbandon}>
               {resumeOnCancel ? "Resume Timer" : "Stay Paused"}
             </Button>
