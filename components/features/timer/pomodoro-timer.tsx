@@ -8,17 +8,33 @@ import type { Settings } from "@/lib/db/type"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
 import type { TimerStatus } from "@/lib/timer/type"
+import type { ChimeName } from "@/lib/audio/type"
 import { playChime } from "@/lib/audio/chime"
+import { sendNotification } from "@/lib/notification"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
 
-interface PomodoroTimerProps extends Omit<Settings, "id" | "notificationsEnabled"> {
+interface PomodoroTimerProps extends Omit<Settings, "id"> {
   className?: string
 }
 
 // How often the running timer is re-read and the display is updated.
 const REFRESH_PERIOD_MS = 200
+
+// How the end of a session announces itself, by what ended.
+const SESSION_END_ALERTS: Record<string, { chime: ChimeName; title: string; body: string }> = {
+  cycle: { chime: "cycleEnd", title: "Cycle complete", body: "All sessions done." },
+  focus: { chime: "focusEnd", title: "Focus complete", body: "Time for a break." },
+  break: { chime: "breakEnd", title: "Break complete", body: "Back to focus." }
+}
+
+const getSessionEndAlert = (isLastSession: boolean, isFocusSession: boolean) => {
+  if (isLastSession) return SESSION_END_ALERTS.cycle
+  if (isFocusSession) return SESSION_END_ALERTS.focus
+
+  return SESSION_END_ALERTS.break
+}
 
 const getSubtitle = (status: TimerStatus, isFocusSession: boolean, isLastSession: boolean) => {
   switch (status) {
@@ -49,6 +65,7 @@ export const PomodoroTimer = ({
   longBreakMin,
   cyclesBeforeLongBreak,
   soundEnabled,
+  notificationsEnabled,
   className
 }: PomodoroTimerProps) => {
   const [sessionsDuration] = useState(() =>
@@ -83,14 +100,14 @@ export const PomodoroTimer = ({
     const latestStatus = timer.getCurrent().status
 
     if (latestStatus === "finished") {
+      const alert = getSessionEndAlert(isLastSession, isFocusSession)
+
       if (soundEnabled) {
-        if (isLastSession) {
-          playChime("cycleEnd")
-        } else if (isFocusSession) {
-          playChime("focusEnd")
-        } else {
-          playChime("breakEnd")
-        }
+        playChime(alert.chime)
+      }
+
+      if (notificationsEnabled) {
+        sendNotification({ title: alert.title, body: alert.body })
       }
 
       const record = timer.end()
@@ -102,7 +119,15 @@ export const PomodoroTimer = ({
     }
 
     setTimerView(timer.getCurrent())
-  }, [sessions, currentSessionIdx, timer, soundEnabled, isLastSession, isFocusSession])
+  }, [
+    sessions,
+    currentSessionIdx,
+    timer,
+    soundEnabled,
+    notificationsEnabled,
+    isLastSession,
+    isFocusSession
+  ])
 
   const endCurrentSession = async () => {
     const latestStatus = timer.getCurrent().status

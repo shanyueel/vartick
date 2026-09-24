@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { getSettingsSchema, loadSettings, saveSettings, DEFAULT_SETTINGS } from "@/lib/db/settings"
+import type { NotificationState } from "@/lib/notification/type"
+import { getNotificationPermission, requestNotificationPermission } from "@/lib/notification"
 import { SettingRow } from "@/components/features/settings/setting-row"
 import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -15,6 +17,13 @@ type AlertId = "soundEnabled" | "notificationsEnabled"
 type SettingsId = DurationId | AlertId
 
 type FormValues = Record<DurationId, string> & Record<AlertId, boolean>
+
+const NOTIFICATION_SUBTITLE: Record<NotificationState, string> = {
+  unsupported: "This browser cannot show notifications",
+  default: "Turn on to allow notifications in your browser",
+  denied: "Blocked — allow notifications for this site in your browser settings",
+  granted: "On for this browser"
+}
 
 const MinutesLabel = () => {
   return (
@@ -50,6 +59,7 @@ const durations: {
 export default function SettingsPage() {
   const [form, setForm] = useState<FormValues>()
   const [savedForm, setSavedForm] = useState<FormValues>()
+  const [permission, setPermission] = useState(getNotificationPermission)
 
   useEffect(() => {
     const loadStoredSettings = async () => {
@@ -120,6 +130,27 @@ export default function SettingsPage() {
     setSavedForm((current) => current && { ...current!, [field]: value })
   }
 
+  const handleNotificationsUpdate = async (checked: boolean) => {
+    if (!checked) {
+      await handleValueUpdate("notificationsEnabled", false)
+      return
+    }
+
+    const state = await requestNotificationPermission()
+    setPermission(state)
+
+    if (state !== "granted") {
+      toast.add({
+        type: "error",
+        title: "Notifications are not allowed",
+        description: "Allow them for this site in your browser settings."
+      })
+      return
+    }
+
+    await handleValueUpdate("notificationsEnabled", true)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -170,11 +201,16 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => handleValueUpdate("soundEnabled", checked)}
               />
             </SettingRow>
-            <SettingRow id="notificationsEnabled" label="Browser notification" subtitle="granted">
+            <SettingRow
+              id="notificationsEnabled"
+              label="Browser notification"
+              subtitle={NOTIFICATION_SUBTITLE[permission]}
+            >
               <Switch
                 id="notificationsEnabled"
-                checked={form.notificationsEnabled}
-                onCheckedChange={(checked) => handleValueUpdate("notificationsEnabled", checked)}
+                checked={form.notificationsEnabled && permission === "granted"}
+                disabled={permission === "denied" || permission === "unsupported"}
+                onCheckedChange={handleNotificationsUpdate}
               />
             </SettingRow>
           </FieldSet>

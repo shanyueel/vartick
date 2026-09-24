@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS, loadSettings } from "@/lib/db/settings"
 import type { Settings } from "@/lib/db/type"
 
 export const PomodoroTimerClient = () => {
-  const [settings, setSettings] = useState<Omit<Settings, "id" | "notificationsEnabled">>()
+  const [settings, setSettings] = useState<Omit<Settings, "id">>()
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -19,7 +19,8 @@ export const PomodoroTimerClient = () => {
         shortBreakMin: settings.shortBreakMin,
         longBreakMin: settings.longBreakMin,
         cyclesBeforeLongBreak: settings.cyclesBeforeLongBreak,
-        soundEnabled: settings.soundEnabled
+        soundEnabled: settings.soundEnabled,
+        notificationsEnabled: settings.notificationsEnabled
       })
     }
 
@@ -35,6 +36,7 @@ export const PomodoroTimerClient = () => {
       longBreakMin={settings.longBreakMin}
       cyclesBeforeLongBreak={settings.cyclesBeforeLongBreak}
       soundEnabled={settings.soundEnabled}
+      notificationsEnabled={settings.notificationsEnabled}
     />
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { getNotificationPermission, requestNotificationPermission } from "@/lib/notification"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,19 +11,40 @@ import {
   DialogTitle
 } from "@/components/ui/dialog"
 
+const ASKED_KEY = "vartick:notifications-asked"
+
+const hasAsked = () => {
+  try {
+    return localStorage.getItem(ASKED_KEY) !== null
+  } catch {
+    // if the read fails, assume we've asked and don't prompt again.
+    return true
+  }
+}
+
+const markAsked = () => {
+  try {
+    localStorage.setItem(ASKED_KEY, "asked")
+  } catch {
+    // if the write fails, the user will be prompted again next time.
+  }
+}
+
 export const NotificationPermissionPrompt = () => {
-  const [modalOpen, setModalOpen] = useState(true)
+  const [open, setOpen] = useState(() => getNotificationPermission() === "default" && !hasAsked())
 
   const handleDismiss = () => {
-    setModalOpen(false)
+    markAsked()
+    setOpen(false)
   }
 
-  const handleAllow = () => {
-    setModalOpen(false)
+  const handleAllow = async () => {
+    await requestNotificationPermission()
+    handleDismiss()
   }
 
   return (
-    <Dialog open={modalOpen} disablePointerDismissal>
+    <Dialog open={open} onOpenChange={handleDismiss} disablePointerDismissal>
       <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Get notified when sessions end?</DialogTitle>
