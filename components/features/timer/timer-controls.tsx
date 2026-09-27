@@ -4,7 +4,6 @@ import { useState } from "react"
 import { saveActiveTimer } from "@/lib/db/active-timer"
 import { Timer } from "@/lib/timer"
 import type { TimerStatus } from "@/lib/timer/type"
-import { cn } from "@/lib/utils/style"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
+import { capitalizeFirstLetter } from "@/lib/utils/string"
 
 interface TimerControlsProps {
   currentSessionIdx: number
@@ -105,19 +105,18 @@ export const TimerControls = ({
   const [abandonModalOpen, setAbandonModalOpen] = useState(false)
   const [resumeOnCancel, setResumeOnCancel] = useState(false)
 
-  const abandonModalContent = isFocusSession
-    ? {
-        title: "End this focus session",
-        message: "Are you sure you want to end this focus session early?",
-        requestBtnText: "End Focus",
-        confirmBtnText: "End Focus Early"
-      }
-    : {
-        title: "End this break",
-        message: "Are you sure you want to end this break early?",
-        requestBtnText: "End Break",
-        confirmBtnText: "End Break Early"
-      }
+  const canAbandonSession = !isCycleNotStarted && ["pending", "running", "paused"].includes(status)
+
+  const action = status === "pending" ? "skip" : "end"
+  const sessionName = isFocusSession ? "focus" : "break"
+
+  const abandonModalContent = {
+    title: `${capitalizeFirstLetter(action)} this ${sessionName} session`,
+    message: `Are you sure you want to ${action} this ${sessionName}?`,
+    requestBtnText: `${capitalizeFirstLetter(action)} ${capitalizeFirstLetter(sessionName)}`,
+    confirmBtnText: `${capitalizeFirstLetter(action)} ${capitalizeFirstLetter(sessionName)}${action === "end" ? " Early" : ""}`,
+    cancelBtnText: resumeOnCancel ? "Resume Timer" : "Keep It"
+  }
 
   const handleEndRequest = async () => {
     setResumeOnCancel(status === "running")
@@ -170,17 +169,16 @@ export const TimerControls = ({
         </Button>
       )}
 
-      <Button
-        size="sm"
-        variant="ghost"
-        className={cn(
-          (isCycleNotStarted || status === "finished" || status === "ended") &&
-            "invisible md:hidden"
-        )}
-        onClick={handleEndRequest}
-      >
-        {abandonModalContent.requestBtnText}
-      </Button>
+      {canAbandonSession && (
+        <Button
+          size="sm"
+          variant="ghost"
+
+          onClick={handleEndRequest}
+        >
+          {abandonModalContent.requestBtnText}
+        </Button>
+      )}
 
       {/* Abandon Session Confirmation Modal */}
       <Dialog
@@ -197,7 +195,7 @@ export const TimerControls = ({
           <p>{abandonModalContent.message}</p>
           <DialogFooter>
             <Button variant="ghost" onClick={handleCancelAbandon}>
-              {resumeOnCancel ? "Resume Timer" : "Stay Paused"}
+              {abandonModalContent.cancelBtnText}
             </Button>
             <Button size="lg" variant="secondary" onClick={handleConfirmAbandon}>
               {abandonModalContent.confirmBtnText}
