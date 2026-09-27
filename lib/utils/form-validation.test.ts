@@ -33,23 +33,3 @@ describe("boolean", () => {
     expect(result.error?.issues[0].message).toBe("soundEnabled must be a boolean")
   })
 })
-
-// describe("validatePositiveInteger", () => {
-//   test("returns no error for positive whole-number input", () => {
-//     expect(validatePositiveInteger("25")).toBeUndefined()
-//   })
-
-//   test("requires a value", () => {
-//     expect(validatePositiveInteger(" ")).toBe("Required")
-//   })
-
-//   test("rejects non-positive and fractional input", () => {
-//     expect(validatePositiveInteger("-1")).toBe("Must be a positive whole number")
-//     expect(validatePositiveInteger("0")).toBe("Must be a positive whole number")
-//     expect(validatePositiveInteger("1.5")).toBe("Must be a positive whole number")
-//   })
-
-//   test("rejects input that is not a number", () => {
-//     expect(validatePositiveInteger("abc")).toBe("Must be a positive whole number")
-//   })
-// })
