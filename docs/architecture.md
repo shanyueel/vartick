@@ -12,29 +12,37 @@
 IndexedDB via Dexie. Schema is versioned from v1 — every phase that changes the schema adds a numbered migration, never an in-place edit.
 
 ```ts
-// db.ts
-// The one currently-running timer, if any. Singleton row, deleted once the
-// timer concludes and its result is written to `sessions`. Lives in
-// IndexedDB rather than localStorage so it survives refresh/backgrounding
-// (ADR-3) and stays in sync across tabs for free via useLiveQuery — two
-// tabs open on the same running timer both read the same `endsAt` and
-// render the same countdown with no extra coordination.
+// lib/db/type.ts — TimerState and the session unions live in lib/timer/type.ts
+//
+// The current timer, if any: where the cycle is, plus the Timer's own snapshot.
+// Singleton row, written on every state change. Lives in IndexedDB rather than
+// localStorage so it survives refresh and backgrounding (ADR-3), and every open
+// tab observes it through useLiveQuery. A tab adopts a row when the row
+// changes, not whenever it differs from the local timer — a local change whose
+// save has not landed yet differs too, and adopting it would undo the change.
 export interface ActiveTimer {
   id: "singleton"
-  type: "focus" | "shortBreak" | "longBreak"
-  startedAt: number // epoch ms
-  endsAt: number // epoch ms — absolute target, never a countdown counter
-  plannedDurationSec: number
+  sessionIdx: number // position in the current cycle, 0-based
+  timerState: TimerState
 }
 
+export type TimerState =
+  | { status: "pending" }
+  | { status: "running"; startedAt: number; endsAt: number } // endsAt: absolute target, never a countdown counter
+  | { status: "paused"; startedAt: number; remainingMs: number }
+  | { status: "ended"; startedAt?: number; remainingMs: number } // no startedAt if ended before it ran
+
+// A concluded session, written once when it ends. A skipped session never ran:
+// startedAt and endedAt both hold the moment it was skipped, so durations come
+// from actualDurationMs, never endedAt - startedAt.
 export interface Session {
   id: string
   type: "focus" | "shortBreak" | "longBreak"
   startedAt: number // epoch ms
-  endedAt: number
-  plannedDurationSec: number
-  actualDurationSec: number
-  status: "completed" | "abandoned"
+  endedAt: number // epoch ms
+  plannedDurationMs: number
+  actualDurationMs: number
+  status: "completed" | "abandoned" | "skipped"
   taskId?: string
   blockId?: string // Phase 3
   energy?: 1 | 2 | 3 // captured in v1, surfaced post-v1
@@ -131,9 +139,9 @@ Accepted, with eyes open. The app is client-rendered in practice; Next.js is cho
 No Redux/Zustand for persisted domain data. IndexedDB is the single source of truth; `useLiveQuery` gives reactive reads. Local component state via `useState`/`useReducer` only for ephemeral UI. This avoids a whole class of cache-invalidation bugs.
 
 **ADR-3 — Timestamp-based timer, not interval-counting**
-Persist `endsAt` as an absolute epoch timestamp. `setInterval` only drives the visual countdown; it is never the source of truth. On tab focus, visibility change, or mount, recompute from `Date.now()`. Browsers throttle background timers aggressively — an interval-counting timer will silently drift or freeze. This is non-negotiable and is the subject of a required test.
+Persist `endsAt` as an absolute epoch timestamp. `setInterval` only drives the visual countdown; it is never the source of truth. On mount and on `visibilitychange`, recompute from `Date.now()`. (`focus` was considered and dropped: a visible page is not throttled, so it only repeats work, while `visibilitychange` also covers a window revealed without being focused and a mobile browser returning from the background.) Browsers throttle background timers aggressively — an interval-counting timer will silently drift or freeze. This is non-negotiable and is the subject of a required test.
 
-`endsAt` lives on the `ActiveTimer` singleton row, not on `Session`. `Session` rows are only ever written once, at completion or abandonment — keeping them append-only avoids nullable/in-progress fields on what is otherwise a historical log.
+`endsAt` lives inside `ActiveTimer.timerState`, not on `Session`. `Session` rows are only ever written once, when a session is completed, abandoned, or skipped — keeping them append-only avoids nullable/in-progress fields on what is otherwise a historical log.
 
 **ADR-4 — BYOK via a Next.js Route Handler proxy**
 The key is stored client-side in IndexedDB and sent in the request body to `app/api/insight/route.ts`, which forwards it to the provider and returns the response. The key is never persisted, logged, or cached server-side. Rationale: avoids browser CORS restrictions, keeps the key out of client-side network logs on third-party domains, and allows provider-swapping behind one interface. Document this clearly in the UI and the README — the transparency is part of the portfolio value.
@@ -155,7 +163,7 @@ Rationale: the adapter boundary is the architecturally interesting part and the 
 
 | Concern            | Choice                         | Note                                             |
 | ------------------ | ------------------------------ | ------------------------------------------------ |
-| Framework          | Next.js 15, App Router         | ADR-1                                            |
+| Framework          | Next.js 16, App Router         | ADR-1                                            |
 | Language           | TypeScript, `strict: true`     |                                                  |
 | Styling            | Tailwind CSS v4                |                                                  |
 | Components         | shadcn/ui                      | Behavior and a11y only; restyle surfaces         |

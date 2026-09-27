@@ -1,0 +1,116 @@
+import { describe, expect, test } from "vitest"
+import {
+  formatMinutesSeconds,
+  formatHoursMinutes,
+  convertMsToSec,
+  isTimestamp,
+  isRemainder,
+  isValidPausedRemainder
+} from "./time"
+
+describe("formatMinutesSeconds", () => {
+  test("throws error if the input is invalid", () => {
+    expect(() => formatMinutesSeconds(1.5)).toThrow("duration must be an integer")
+    expect(() => formatMinutesSeconds(-1)).toThrow("duration cannot be negative")
+  })
+
+  test("formats seconds into MM:SS format", () => {
+    expect(formatMinutesSeconds(0)).toBe("00:00")
+    expect(formatMinutesSeconds(5)).toBe("00:05")
+    expect(formatMinutesSeconds(60)).toBe("01:00")
+    expect(formatMinutesSeconds(65)).toBe("01:05")
+    expect(formatMinutesSeconds(3599)).toBe("59:59")
+    expect(formatMinutesSeconds(3600)).toBe("60:00")
+    expect(formatMinutesSeconds(7200)).toBe("120:00")
+    expect(formatMinutesSeconds(36000)).toBe("600:00")
+  })
+})
+
+describe("formatHoursMinutes", () => {
+  test("throws error if the input is invalid", () => {
+    expect(() => formatHoursMinutes(1.5)).toThrow("duration must be a non-negative integer")
+    expect(() => formatHoursMinutes(-1)).toThrow("duration must be a non-negative integer")
+  })
+
+  test("discards seconds rather than rounding them up", () => {
+    expect(formatHoursMinutes(119)).toBe("1m")
+    expect(formatHoursMinutes(7199)).toBe("1h 59m")
+  })
+
+  test("shows minutes alone below an hour", () => {
+    expect(formatHoursMinutes(0)).toBe("0m")
+    expect(formatHoursMinutes(59)).toBe("0m")
+    expect(formatHoursMinutes(60)).toBe("1m")
+    expect(formatHoursMinutes(1500)).toBe("25m")
+    expect(formatHoursMinutes(3599)).toBe("59m")
+  })
+
+  test("shows hours and minutes from an hour up", () => {
+    expect(formatHoursMinutes(3600)).toBe("1h 0m")
+    expect(formatHoursMinutes(3660)).toBe("1h 1m")
+    expect(formatHoursMinutes(7500)).toBe("2h 5m")
+    expect(formatHoursMinutes(86400)).toBe("24h 0m")
+  })
+})
+
+describe("convertMsToSec", () => {
+  test("throws error if the input is invalid", () => {
+    expect(() => convertMsToSec(1.5)).toThrow("remainingMs must be an integer")
+    expect(() => convertMsToSec(-1)).toThrow("remainingMs cannot be negative")
+  })
+
+  test("transfers remaining milliseconds to the closest ceiling seconds", () => {
+    expect(convertMsToSec(0)).toBe(0)
+    expect(convertMsToSec(500)).toBe(1)
+    expect(convertMsToSec(1000)).toBe(1)
+    expect(convertMsToSec(1500)).toBe(2)
+    expect(convertMsToSec(2000)).toBe(2)
+    expect(convertMsToSec(2500)).toBe(3)
+    expect(convertMsToSec(3000)).toBe(3)
+    expect(convertMsToSec(3500)).toBe(4)
+  })
+})
+
+describe("isTimestamp", () => {
+  test("returns true for integers", () => {
+    expect(isTimestamp(0)).toBe(true)
+    expect(isTimestamp(1)).toBe(true)
+    expect(isTimestamp(-1)).toBe(true)
+    expect(isTimestamp(100)).toBe(true)
+  })
+})
+
+describe("isRemainder", () => {
+  test("returns true for integers between 0 and the duration", () => {
+    expect(isRemainder(0, 100)).toBe(true)
+    expect(isRemainder(50, 100)).toBe(true)
+    expect(isRemainder(100, 100)).toBe(true)
+  })
+
+  test("returns false for non-integers or values outside the range", () => {
+    expect(isRemainder(-1, 100)).toBe(false)
+    expect(isRemainder(101, 100)).toBe(false)
+    expect(isRemainder(1.5, 100)).toBe(false)
+    expect(isRemainder("50", 100)).toBe(false)
+    expect(isRemainder(null, 100)).toBe(false)
+    expect(isRemainder(undefined, 100)).toBe(false)
+  })
+})
+
+describe("isValidPausedRemainder", () => {
+  test("returns true for positive integers between 0 and the duration", () => {
+    expect(isValidPausedRemainder(1, 100)).toBe(true)
+    expect(isValidPausedRemainder(50, 100)).toBe(true)
+    expect(isValidPausedRemainder(99, 100)).toBe(true)
+  })
+
+  test("returns false for non-integers or values outside the range", () => {
+    expect(isValidPausedRemainder(0, 100)).toBe(false)
+    expect(isValidPausedRemainder(-1, 100)).toBe(false)
+    expect(isValidPausedRemainder(101, 100)).toBe(false)
+    expect(isValidPausedRemainder(1.5, 100)).toBe(false)
+    expect(isValidPausedRemainder("50", 100)).toBe(false)
+    expect(isValidPausedRemainder(null, 100)).toBe(false)
+    expect(isValidPausedRemainder(undefined, 100)).toBe(false)
+  })
+})

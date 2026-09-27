@@ -43,11 +43,21 @@ A break does not interrupt or end a Phase 3 block. Breaks live _inside_ the bloc
 
 The plan is frozen as-is at midnight. Unfinished blocks are marked `skipped` and stay visible in the report rather than being cleaned up. Unfinished plans are not clutter — they are exactly the signal Phase 4 needs to say anything useful about over-planning.
 
+### Session outcomes — **completed, abandoned, skipped** _(resolved)_
+
+`completed` ran to zero; `abandoned` was started and stopped early; `skipped` was never started. A skipped session still records `startedAt` and `endedAt`, both set to the moment it was skipped, rather than leaving them undefined: `startedAt` is an index, and IndexedDB leaves a record out of an index whose key is undefined, so skips would silently vanish from every date-range report.
+
+The cost is that elapsed time must come from `actualDurationMs`, never `endedAt - startedAt`, which is zero for a skip.
+
 ---
 
 ## Open Questions
 
-_None currently._ New questions go here as they arise; move each into Resolved Decisions above once answered, with the reasoning.
+New questions go here as they arise; move each into Resolved Decisions above once answered, with the reasoning.
+
+### Should tabs share one timer?
+
+Phase 1 runs each tab independently and starts a fresh cycle on reload, so two tabs can record overlapping sessions. Decide before the daily report trusts its totals. A single-tab design using Web Locks is parked in a local stash, `wip: single-tab timer ownership via Web Locks`.
 
 ---
 

@@ -1,0 +1,38 @@
+/* Timer */
+export type TimerStatus = "pending" | "running" | "paused" | "finished" | "ended"
+
+export type TimerState =
+  | { status: "pending" }
+  | { status: "running"; startedAt: number; endsAt: number }
+  | { status: "paused"; startedAt: number; remainingMs: number }
+  | { status: "ended"; startedAt?: number; remainingMs: number }
+
+export type TimerCurrent = {
+  status: TimerStatus
+  remainingMs: number
+}
+
+export type TimerRecord = {
+  status: SessionStatus
+  startedAt: number // epoch ms — when the timer started, or when the session was skipped
+  endedAt: number // epoch ms — when the timer stopped, or when the session was skipped
+  plannedDurationMs: number
+  actualDurationMs: number
+}
+
+/* Session */
+export type SessionType = "focus" | "shortBreak" | "longBreak"
+
+export type SessionStatus = "completed" | "abandoned" | "skipped"
+
+export interface SessionSetting {
+  focusMin: number
+  shortBreakMin: number
+  longBreakMin: number
+  cyclesBeforeLongBreak: number
+}
+
+export interface PomodoroTimerState {
+  sessionIdx: number // index of the session in the current cycle (0-based)
+  timerState: TimerState
+}

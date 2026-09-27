@@ -1,6 +1,8 @@
 import { describe, test, expect, beforeEach } from "vitest"
 import "fake-indexeddb/auto"
-import { db, type Session } from "./db"
+import { db } from "@/lib/db"
+import type { Session } from "@/lib/db/type"
+import type { TimerState } from "@/lib/timer/type"
 
 const clearDb = async () => {
   await db.delete()
@@ -67,113 +69,170 @@ describe("IndexedDB Tests", () => {
   /* activeTimer Table */
   describe("activeTimer table", () => {
     const startTime = new Date("2026-01-01T12:00:00Z").getTime()
-    const durationSec = 25 * 60
+    const durationMs = 25 * 60 * 1000
 
-    test("stores a running timer", async () => {
+    test("stores a pending timer", async () => {
+      const timerState: TimerState = {
+        status: "pending"
+      }
+
       await db.activeTimer.put({
         id: "singleton",
-        type: "shortBreak",
-        status: "running",
-        startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        sessionIdx: 1,
+        timerState: { ...timerState }
       })
 
       const timer = await db.activeTimer.get("singleton")
 
-      if (timer?.status !== "running") throw new Error("expected running timer")
+      if (!timer) {
+        throw new Error("expected an existing timer record")
+      }
 
-      expect(timer.type).toBe("shortBreak")
-      expect(timer.startedAt).toBe(startTime)
-      expect(timer.endsAt).toBe(startTime + durationSec * 1000)
-      expect(timer.plannedDurationSec).toBe(durationSec)
+      if (timer.timerState.status !== "pending") {
+        throw new Error("expected pending timer")
+      }
+
+      expect(timer.sessionIdx).toBe(1)
+      expect(timer.timerState).toEqual(timerState)
+    })
+
+    test("stores a running timer", async () => {
+      const timerState: TimerState = {
+        status: "running",
+        startedAt: startTime,
+        endsAt: startTime + durationMs
+      }
+
+      await db.activeTimer.put({
+        id: "singleton",
+        sessionIdx: 2,
+        timerState: { ...timerState }
+      })
+
+      const timer = await db.activeTimer.get("singleton")
+
+      if (!timer) {
+        throw new Error("expected an existing timer record")
+      }
+
+      if (timer.timerState.status !== "running") {
+        throw new Error("expected running timer")
+      }
+
+      expect(timer.sessionIdx).toBe(2)
+      expect(timer.timerState).toEqual(timerState)
     })
 
     test("stores a paused timer", async () => {
-      const remainingSec = durationSec - 5 * 60
+      const remainingMs = durationMs - 5 * 60 * 1000
+
+      const timerState: TimerState = {
+        status: "paused",
+        startedAt: startTime,
+        remainingMs
+      }
 
       await db.activeTimer.put({
         id: "singleton",
-        type: "shortBreak",
-        status: "paused",
-        startedAt: startTime,
-        remainingSec,
-        plannedDurationSec: durationSec
+        sessionIdx: 3,
+        timerState: { ...timerState }
       })
 
       const timer = await db.activeTimer.get("singleton")
 
-      if (timer?.status !== "paused") throw new Error("expected paused timer")
+      if (!timer) {
+        throw new Error("expected an existing timer record")
+      }
 
-      expect(timer.type).toBe("shortBreak")
-      expect(timer.startedAt).toBe(startTime)
-      expect(timer.remainingSec).toBe(remainingSec)
-      expect(timer.plannedDurationSec).toBe(durationSec)
+      if (timer.timerState.status !== "paused") {
+        throw new Error("expected paused timer")
+      }
+
+      expect(timer.sessionIdx).toBe(3)
+      expect(timer.timerState).toEqual(timerState)
     })
 
     test("put() fully overwrites and no stale fields survive a status change", async () => {
       // start running
       await db.activeTimer.put({
         id: "singleton",
-        type: "shortBreak",
-        status: "running",
-        startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        sessionIdx: 4,
+        timerState: {
+          status: "running",
+          startedAt: startTime,
+          endsAt: startTime + durationMs
+        }
       })
 
       // pause after 5 minutes
-      const remainingSec = durationSec - 5 * 60
+      const remainingMs = durationMs - 5 * 60 * 1000
 
       await db.activeTimer.put({
         id: "singleton",
-        type: "shortBreak",
-        status: "paused",
-        startedAt: startTime,
-        remainingSec,
-        plannedDurationSec: durationSec
+        sessionIdx: 4,
+        timerState: {
+          status: "paused",
+          startedAt: startTime,
+          remainingMs: remainingMs
+        }
       })
 
       const pausedTimer = await db.activeTimer.get("singleton")
-      if (pausedTimer?.status !== "paused") throw new Error("expected paused timer")
-      expect("endsAt" in pausedTimer).toBe(false)
+
+      if (!pausedTimer) {
+        throw new Error("expected an existing timer record")
+      }
+
+      if (pausedTimer.timerState.status !== "paused") throw new Error("expected paused timer")
+      expect("endsAt" in pausedTimer.timerState).toBe(false)
 
       // resume
       const resumedStartTime = new Date("2026-01-01T12:30:00Z").getTime()
-      const newEndsAt = resumedStartTime + remainingSec * 1000
+      const newEndsAt = resumedStartTime + remainingMs
 
       await db.activeTimer.put({
         id: "singleton",
-        type: "shortBreak",
-        status: "running",
-        startedAt: startTime,
-        endsAt: newEndsAt,
-        plannedDurationSec: durationSec
+        sessionIdx: 4,
+        timerState: {
+          status: "running",
+          startedAt: startTime,
+          endsAt: newEndsAt
+        }
       })
 
       const resumedTimer = await db.activeTimer.get("singleton")
-      if (resumedTimer?.status !== "running") throw new Error("expected running timer")
-      expect("remainingSec" in resumedTimer).toBe(false)
-      expect(resumedTimer.endsAt).toBe(newEndsAt)
+
+      if (!resumedTimer) {
+        throw new Error("expected an existing timer record")
+      }
+
+      if (resumedTimer.timerState.status !== "running") {
+        throw new Error("expected running timer")
+      }
+
+      expect("remainingMs" in resumedTimer.timerState).toBe(false)
+      expect(resumedTimer.timerState.endsAt).toBe(newEndsAt)
     })
 
     test("singleton stays singleton across multiple writes", async () => {
       await db.activeTimer.put({
         id: "singleton",
-        type: "focus",
-        status: "running",
-        startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        sessionIdx: 5,
+        timerState: {
+          status: "running",
+          startedAt: startTime,
+          endsAt: startTime + durationMs
+        }
       })
 
       await db.activeTimer.put({
         id: "singleton",
-        type: "longBreak",
-        status: "paused",
-        startedAt: startTime,
-        remainingSec: durationSec - 60,
-        plannedDurationSec: durationSec
+        sessionIdx: 5,
+        timerState: {
+          status: "paused",
+          startedAt: startTime,
+          remainingMs: durationMs - 60 * 1000
+        }
       })
 
       const allTimers = await db.activeTimer.count()
@@ -183,11 +242,12 @@ describe("IndexedDB Tests", () => {
     test("delete removes the active timer", async () => {
       await db.activeTimer.put({
         id: "singleton",
-        type: "focus",
-        status: "running",
-        startedAt: startTime,
-        endsAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec
+        sessionIdx: 6,
+        timerState: {
+          status: "running",
+          startedAt: startTime,
+          endsAt: startTime + durationMs
+        }
       })
 
       await db.activeTimer.delete("singleton")
@@ -204,62 +264,62 @@ describe("IndexedDB Tests", () => {
       const durationSec = 25 * 60
 
       await db.sessions.add({
-        id: "1",
+        id: 1,
         type: "focus",
         startedAt: startTime,
         endedAt: startTime + durationSec * 1000,
-        plannedDurationSec: durationSec,
-        actualDurationSec: 15 * 60, // user abandoned after 15 minutes
+        plannedDurationMs: durationSec * 1000,
+        actualDurationMs: 15 * 60 * 1000, // user abandoned after 15 minutes
         status: "abandoned"
       })
 
-      const session = await db.sessions.get("1")
+      const session = await db.sessions.get(1)
 
       expect(session).toBeDefined()
       expect(session?.type).toBe("focus")
       expect(session?.startedAt).toBe(startTime)
       expect(session?.endedAt).toBe(startTime + durationSec * 1000)
-      expect(session?.plannedDurationSec).toBe(25 * 60)
-      expect(session?.actualDurationSec).toBe(15 * 60)
+      expect(session?.plannedDurationMs).toBe(25 * 60 * 1000)
+      expect(session?.actualDurationMs).toBe(15 * 60 * 1000)
       expect(session?.status).toBe("abandoned")
     })
 
     test("query sessions by type and status", async () => {
       const dummyData: Session[] = [
         {
-          id: "1",
+          id: 1,
           type: "focus",
           startedAt: new Date("2026-01-01T12:00:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:30:00Z").getTime(),
-          plannedDurationSec: 25 * 60,
-          actualDurationSec: 25 * 60,
+          plannedDurationMs: 25 * 60 * 1000,
+          actualDurationMs: 25 * 60 * 1000,
           status: "completed"
         },
         {
-          id: "2",
+          id: 2,
           type: "shortBreak",
-          startedAt: new Date("2026-01-01T12:30:00Z").getTime(),
+          startedAt: new Date("2026-01-01T12:35:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:35:00Z").getTime(),
-          plannedDurationSec: 5 * 60,
-          actualDurationSec: 5 * 60,
-          status: "completed"
+          plannedDurationMs: 5 * 60 * 1000,
+          actualDurationMs: 0,
+          status: "skipped"
         },
         {
-          id: "3",
+          id: 3,
           type: "focus",
           startedAt: new Date("2026-01-01T12:35:00Z").getTime(),
           endedAt: new Date("2026-01-01T12:50:00Z").getTime(),
-          plannedDurationSec: 15 * 60,
-          actualDurationSec: 10 * 60,
+          plannedDurationMs: 15 * 60 * 1000,
+          actualDurationMs: 10 * 60 * 1000,
           status: "abandoned"
         },
         {
-          id: "4",
+          id: 4,
           type: "longBreak",
           startedAt: new Date("2026-01-01T12:50:00Z").getTime(),
           endedAt: new Date("2026-01-01T13:05:00Z").getTime(),
-          plannedDurationSec: 15 * 60,
-          actualDurationSec: 15 * 60,
+          plannedDurationMs: 15 * 60 * 1000,
+          actualDurationMs: 15 * 60 * 1000,
           status: "completed"
         }
       ]
@@ -272,7 +332,7 @@ describe("IndexedDB Tests", () => {
 
       const completedSessions = await db.sessions.where("status").equals("completed").toArray()
 
-      expect(completedSessions.length).toBe(3)
+      expect(completedSessions.length).toBe(2)
     })
   })
 })
