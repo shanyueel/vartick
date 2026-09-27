@@ -1,27 +1,55 @@
 import { describe, expect, test } from "vitest"
 import {
-  formatDuration,
+  formatMinutesSeconds,
+  formatHoursMinutes,
   convertMsToSec,
   isTimestamp,
   isRemainder,
   isValidPausedRemainder
 } from "./time"
 
-describe("formatDuration", () => {
+describe("formatMinutesSeconds", () => {
   test("throws error if the input is invalid", () => {
-    expect(() => formatDuration(1.5)).toThrow("duration must be an integer")
-    expect(() => formatDuration(-1)).toThrow("duration cannot be negative")
+    expect(() => formatMinutesSeconds(1.5)).toThrow("duration must be an integer")
+    expect(() => formatMinutesSeconds(-1)).toThrow("duration cannot be negative")
   })
 
   test("formats seconds into MM:SS format", () => {
-    expect(formatDuration(0)).toBe("00:00")
-    expect(formatDuration(5)).toBe("00:05")
-    expect(formatDuration(60)).toBe("01:00")
-    expect(formatDuration(65)).toBe("01:05")
-    expect(formatDuration(3599)).toBe("59:59")
-    expect(formatDuration(3600)).toBe("60:00")
-    expect(formatDuration(7200)).toBe("120:00")
-    expect(formatDuration(36000)).toBe("600:00")
+    expect(formatMinutesSeconds(0)).toBe("00:00")
+    expect(formatMinutesSeconds(5)).toBe("00:05")
+    expect(formatMinutesSeconds(60)).toBe("01:00")
+    expect(formatMinutesSeconds(65)).toBe("01:05")
+    expect(formatMinutesSeconds(3599)).toBe("59:59")
+    expect(formatMinutesSeconds(3600)).toBe("60:00")
+    expect(formatMinutesSeconds(7200)).toBe("120:00")
+    expect(formatMinutesSeconds(36000)).toBe("600:00")
+  })
+})
+
+describe("formatHoursMinutes", () => {
+  test("throws error if the input is invalid", () => {
+    expect(() => formatHoursMinutes(1.5)).toThrow("duration must be a non-negative integer")
+    expect(() => formatHoursMinutes(-1)).toThrow("duration must be a non-negative integer")
+  })
+
+  test("discards seconds rather than rounding them up", () => {
+    expect(formatHoursMinutes(119)).toBe("1m")
+    expect(formatHoursMinutes(7199)).toBe("1h 59m")
+  })
+
+  test("shows minutes alone below an hour", () => {
+    expect(formatHoursMinutes(0)).toBe("0m")
+    expect(formatHoursMinutes(59)).toBe("0m")
+    expect(formatHoursMinutes(60)).toBe("1m")
+    expect(formatHoursMinutes(1500)).toBe("25m")
+    expect(formatHoursMinutes(3599)).toBe("59m")
+  })
+
+  test("shows hours and minutes from an hour up", () => {
+    expect(formatHoursMinutes(3600)).toBe("1h 0m")
+    expect(formatHoursMinutes(3660)).toBe("1h 1m")
+    expect(formatHoursMinutes(7500)).toBe("2h 5m")
+    expect(formatHoursMinutes(86400)).toBe("24h 0m")
   })
 })
 

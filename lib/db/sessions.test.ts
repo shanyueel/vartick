@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest"
 import "fake-indexeddb/auto"
 import { db } from "@/lib/db"
-import { concludeSession } from "./sessions"
+import { loadSessions, querySessions, concludeSession } from "./sessions"
 import type { Session } from "@/lib/db/type"
 import type { TimerState } from "@/lib/timer/type"
 
@@ -28,6 +28,142 @@ const completedSession: Omit<Session, "id"> = {
   plannedDurationMs: DURATION_MS,
   actualDurationMs: DURATION_MS
 }
+
+describe("loadSessions()", () => {
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+
+    await db.sessions.bulkAdd([
+      {
+        type: "focus",
+        status: "completed",
+        startedAt: BASE_TIME,
+        endedAt: BASE_TIME + DURATION_MS,
+        plannedDurationMs: DURATION_MS,
+        actualDurationMs: DURATION_MS
+      },
+      {
+        type: "shortBreak",
+        status: "completed",
+        startedAt: BASE_TIME + DURATION_MS,
+        endedAt: BASE_TIME + 2 * DURATION_MS,
+        plannedDurationMs: DURATION_MS,
+        actualDurationMs: DURATION_MS
+      },
+      {
+        type: "focus",
+        status: "abandoned",
+        startedAt: BASE_TIME + 2 * DURATION_MS,
+        endedAt: BASE_TIME + 3 * DURATION_MS,
+        plannedDurationMs: DURATION_MS,
+        actualDurationMs: DURATION_MS
+      },
+      {
+        type: "longBreak",
+        status: "completed",
+        startedAt: BASE_TIME + 3 * DURATION_MS,
+        endedAt: BASE_TIME + 4 * DURATION_MS,
+        plannedDurationMs: DURATION_MS,
+        actualDurationMs: DURATION_MS
+      }
+    ])
+  })
+
+  // Rejecting the read itself, rather than the call that builds it, is what
+  // proves the failure is caught after the await rather than before it.
+  const failTheRead = () => {
+    const collection = db.sessions.toCollection()
+
+    vi.spyOn(collection, "toArray").mockRejectedValue(new Error("Simulated error"))
+    vi.spyOn(db.sessions, "toCollection").mockReturnValue(collection)
+  }
+
+  test("returns empty and logs error if the read fails", async () => {
+    failTheRead()
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    expect(await loadSessions()).toEqual([])
+    expect(logError).toHaveBeenCalled()
+
+    vi.restoreAllMocks()
+  })
+
+  // useLiveQuery re-runs a querier by catching what it throws, so this one
+  // must not swallow the failure the way loadSessions does.
+  test("querySessions lets a failed read reject", async () => {
+    failTheRead()
+
+    await expect(querySessions()).rejects.toThrow("Simulated error")
+
+    vi.restoreAllMocks()
+  })
+
+  test("returns empty array when no sessions exist", async () => {
+    await db.sessions.clear()
+
+    const sessions = await loadSessions()
+
+    expect(sessions).toEqual([])
+  })
+
+  test("returns all sessions when no filters are applied", async () => {
+    const sessions = await loadSessions()
+
+    expect(sessions).toHaveLength(4)
+  })
+
+  test("filters sessions by type", async () => {
+    const focusSessions = await loadSessions({ type: "focus" })
+
+    expect(focusSessions).toHaveLength(2)
+    expect(focusSessions.every((s) => s.type === "focus")).toBe(true)
+  })
+
+  test("filters sessions by status", async () => {
+    const completedSessions = await loadSessions({ status: "completed" })
+
+    expect(completedSessions).toHaveLength(3)
+    expect(completedSessions.every((s) => s.status === "completed")).toBe(true)
+  })
+
+  test("filters sessions by startedAt range", async () => {
+    const startRange: [number, number] = [BASE_TIME + DURATION_MS, BASE_TIME + 3 * DURATION_MS]
+    const sessionsInRange = await loadSessions({ startedAtRange: startRange })
+
+    expect(sessionsInRange).toHaveLength(2)
+    expect(
+      sessionsInRange.every((s) => s.startedAt >= startRange[0] && s.startedAt <= startRange[1])
+    ).toBe(true)
+  })
+
+  test("filters sessions by endedAt range", async () => {
+    const endRange: [number, number] = [BASE_TIME + 2 * DURATION_MS, BASE_TIME + 4 * DURATION_MS]
+    const sessionsInRange = await loadSessions({ endedAtRange: endRange })
+
+    expect(sessionsInRange).toHaveLength(2)
+    expect(sessionsInRange.every((s) => s.endedAt >= endRange[0] && s.endedAt <= endRange[1])).toBe(
+      true
+    )
+  })
+
+  test("filters today's completed focus sessions", async () => {
+    const todayStart = new Date("2026-01-01T00:00:00Z").getTime()
+    const todayEnd = new Date("2026-01-01T23:59:59Z").getTime()
+
+    const todayFocusSessions = await loadSessions({
+      type: "focus",
+      status: "completed",
+      startedAtRange: [todayStart, todayEnd]
+    })
+
+    expect(todayFocusSessions).toHaveLength(1)
+    expect(todayFocusSessions.every((s) => s.type === "focus")).toBe(true)
+    expect(
+      todayFocusSessions.every((s) => s.startedAt >= todayStart && s.startedAt <= todayEnd)
+    ).toBe(true)
+  })
+})
 
 describe("concludeSession()", () => {
   beforeEach(async () => {

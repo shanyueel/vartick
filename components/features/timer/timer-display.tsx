@@ -1,7 +1,7 @@
 "use client"
 
 import type { TimerStatus } from "@/lib/timer/type"
-import { convertMsToSec, formatDuration } from "@/lib/utils/time"
+import { convertMsToSec, formatMinutesSeconds } from "@/lib/utils/time"
 import { CircularProgress } from "@/components/ui/circular-progress"
 
 interface TimerDisplayProps {
@@ -43,7 +43,7 @@ export const TimerDisplay = ({
       content={
         <div className="flex w-full flex-col items-center justify-center gap-2">
           <h1 className="w-full text-center text-4xl font-mono font-semibold tracking-wider tabular-nums md:font-light">
-            {formatDuration(convertMsToSec(remainingMs))}
+            {formatMinutesSeconds(convertMsToSec(remainingMs))}
           </h1>
           {subContent}
         </div>

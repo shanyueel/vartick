@@ -1,4 +1,4 @@
-export const formatDuration = (seconds: number): string => {
+export const formatMinutesSeconds = (seconds: number): string => {
   if (!Number.isInteger(seconds)) {
     throw new Error("duration must be an integer")
   }
@@ -14,6 +14,17 @@ export const formatDuration = (seconds: number): string => {
   const formattedSeconds = String(remainingSeconds).padStart(2, "0")
 
   return `${formattedMinutes}:${formattedSeconds}`
+}
+
+export const formatHoursMinutes = (seconds: number): string => {
+  if (!Number.isInteger(seconds) || seconds < 0) {
+    throw new Error("duration must be a non-negative integer")
+  }
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
 }
 
 export const convertMsToSec = (ms: number): number => {

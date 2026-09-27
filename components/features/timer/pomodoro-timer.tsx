@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils/style"
+import type { Session, Settings } from "@/lib/db/type"
 import { saveActiveTimer } from "@/lib/db/active-timer"
-import { concludeSession } from "@/lib/db/sessions"
-import type { Settings } from "@/lib/db/type"
+import { concludeSession, loadSessions } from "@/lib/db/sessions"
 import { Timer } from "@/lib/timer"
 import { buildSessions, getSessionsDuration } from "@/lib/timer/session"
 import type { TimerStatus } from "@/lib/timer/type"
@@ -14,6 +14,7 @@ import { sendNotification } from "@/lib/notification"
 import { TimerDisplay } from "@/components/features/timer/timer-display"
 import { TimerControls } from "@/components/features/timer/timer-controls"
 import { SessionTracker } from "@/components/features/timer/session-tracker"
+import { formatHoursMinutes } from "@/lib/utils/time"
 
 interface PomodoroTimerProps extends Omit<Settings, "id"> {
   className?: string
@@ -21,6 +22,8 @@ interface PomodoroTimerProps extends Omit<Settings, "id"> {
 
 // How often the running timer is re-read and the display is updated.
 const REFRESH_PERIOD_MS = 200
+
+const WEEKDAY_FORMAT = new Intl.DateTimeFormat("en-US", { weekday: "short" })
 
 // How the end of a session announces itself, by what ended.
 const SESSION_END_ALERTS: Record<string, { chime: ChimeName; title: string; body: string }> = {
@@ -82,6 +85,32 @@ export const PomodoroTimer = ({
    */
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0)
 
+  const [completedFocusToday, setCompletedFocusToday] = useState<Session[]>([])
+
+  const todayFocusCount = completedFocusToday.length
+  const todayFocusSeconds = completedFocusToday.reduce(
+    (total, session) => total + Math.floor(session.actualDurationMs / 1000),
+    0
+  )
+
+  const fetchTodayFocusSessions = useCallback(async () => {
+    const sessions = await loadSessions({
+      type: "focus",
+      status: "completed",
+      startedAtRange: [new Date().setHours(0, 0, 0, 0), new Date().setHours(23, 59, 59, 999)]
+    })
+
+    setCompletedFocusToday(sessions)
+  }, [])
+
+  useEffect(() => {
+    const loadTodayFocusSessions = async () => {
+      await fetchTodayFocusSessions()
+    }
+
+    loadTodayFocusSessions()
+  }, [fetchTodayFocusSessions])
+
   /* Timer */
   const [timer] = useState(() => Timer.create(sessionsDuration[sessions[0]]))
 
@@ -90,6 +119,7 @@ export const PomodoroTimer = ({
   const remainingMs = timerView.remainingMs
 
   /* Derived State */
+  const weekday = WEEKDAY_FORMAT.format(new Date()).toUpperCase()
   const isFocusSession = sessions[currentSessionIdx] === "focus"
   const isLastSession = currentSessionIdx === sessions.length - 1
   const isCycleNotStarted = currentSessionIdx === 0 && status === "pending"
@@ -116,6 +146,8 @@ export const PomodoroTimer = ({
         { sessionIdx: currentSessionIdx, timerState: timer.snapshot() },
         { type: sessions[currentSessionIdx], ...record }
       )
+
+      await fetchTodayFocusSessions()
     }
 
     setTimerView(timer.getCurrent())
@@ -126,7 +158,8 @@ export const PomodoroTimer = ({
     soundEnabled,
     notificationsEnabled,
     isLastSession,
-    isFocusSession
+    isFocusSession,
+    fetchTodayFocusSessions
   ])
 
   const endCurrentSession = async () => {
@@ -140,6 +173,8 @@ export const PomodoroTimer = ({
       { sessionIdx: currentSessionIdx, timerState: timer.snapshot() },
       { type: sessions[currentSessionIdx], ...record }
     )
+
+    await fetchTodayFocusSessions()
   }
 
   const moveToSession = async (sessionIdx: number) => {
@@ -204,6 +239,7 @@ export const PomodoroTimer = ({
 
   return (
     <div data-component="timer" className={cn("flex flex-col items-center gap-8", className)}>
+      <div className="-mb-4 text-muted-foreground tracking-widest">TODAY · {weekday}</div>
       <TimerDisplay
         status={status}
         remainingMs={remainingMs}
@@ -216,6 +252,16 @@ export const PomodoroTimer = ({
         }
       />
       <SessionTracker sessions={sessions} currentSessionIdx={currentSessionIdx} />
+
+      {completedFocusToday.length === 0 ? (
+        <span className="text-muted-foreground">No sessions yet today</span>
+      ) : (
+        <span className="text-muted-foreground">
+          {todayFocusCount} session{todayFocusCount === 1 ? "" : "s"} ·{" "}
+          {formatHoursMinutes(todayFocusSeconds)} focused today
+        </span>
+      )}
+
       <div className="w-full px-8">
         <TimerControls
           currentSessionIdx={currentSessionIdx}
@@ -231,6 +277,12 @@ export const PomodoroTimer = ({
           isCycleEnded={isCycleEnded}
         />
       </div>
+      {isCycleNotStarted && (
+        <span className="text-sm text-muted-foreground">
+          Short break {shortBreakMin}m · Long break {longBreakMin}m after {cyclesBeforeLongBreak}{" "}
+          focus
+        </span>
+      )}
     </div>
   )
 }
