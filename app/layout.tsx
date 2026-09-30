@@ -1,12 +1,19 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { Sidebar } from "@/components/features/sidebar"
 import { Toaster } from "@/components/ui/toast"
 import { NotificationPermissionPrompt } from "@/components/features/notification/permission-prompt"
+import { ServiceWorkerRegistrar } from "@/components/features/pwa"
 
 export const metadata: Metadata = {
   title: "VarTick",
   description: "A Pomodoro timer that learns why your day never goes to plan."
+}
+
+// Colours the browser chrome around the page. Separate from the manifest's
+// theme_color, which colours the installed app.
+export const viewport: Viewport = {
+  themeColor: "#0a0e0d"
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -17,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Sidebar className="border-t md:-order-1 md:border-t-0 md:border-r" />
         <Toaster />
         <NotificationPermissionPrompt />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   )
