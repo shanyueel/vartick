@@ -34,9 +34,9 @@ Each phase is a **gate**. Do not begin the next phase until the current phase's 
 - [x] Starting a 25-minute focus session, backgrounding the tab for 25 minutes, and returning shows the session correctly completed — not 25 minutes remaining
 - [x] Reloading or reopening the page starts a new cycle, and a session left unfinished is discarded rather than recorded
 - [x] Abandoning a session writes a row with `status: 'abandoned'` and the actual elapsed duration
-- [ ] Lighthouse PWA audit passes; app installs to home screen on both desktop and Android
+- [x] Lighthouse PWA audit passes; app installs to home screen on both desktop and Android
 - [x] Timer state machine has 100% branch coverage in Vitest, written test-first
-- [ ] Deployed and reachable at a public URL
+- [x] Deployed and reachable at a public URL
 
 ---
 
