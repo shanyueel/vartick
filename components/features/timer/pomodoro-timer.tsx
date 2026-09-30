@@ -253,14 +253,16 @@ export const PomodoroTimer = ({
       />
       <SessionTracker sessions={sessions} currentSessionIdx={currentSessionIdx} />
 
-      {completedFocusToday.length === 0 ? (
-        <span className="text-muted-foreground">No sessions yet today</span>
-      ) : (
-        <span className="text-muted-foreground">
-          {todayFocusCount} session{todayFocusCount === 1 ? "" : "s"} ·{" "}
-          {formatHoursMinutes(todayFocusSeconds)} focused today
-        </span>
-      )}
+      <div className="w-full min-h-6 text-center text-muted-foreground">
+        {completedFocusToday.length === 0 ? (
+          <span>No sessions yet today</span>
+        ) : (
+          <span>
+            {todayFocusCount} session{todayFocusCount === 1 ? "" : "s"} ·{" "}
+            {formatHoursMinutes(todayFocusSeconds)} focused today
+          </span>
+        )}
+      </div>
 
       <div className="w-full px-8">
         <TimerControls
