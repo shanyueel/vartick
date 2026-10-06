@@ -4,6 +4,8 @@ A local-first productivity companion that starts as a Pomodoro timer and grows i
 
 **Thesis:** most productivity apps track what you planned. VarTick tracks the _variance_ — the gap between what you planned and what actually happened, and why.
 
+**Live demo:** [vartick.vercel.app](https://vartick.vercel.app/)
+
 > 🚧 Work in progress. See [`docs/`](./docs/README.md) for the full product spec, architecture, and roadmap.
 
 ---
